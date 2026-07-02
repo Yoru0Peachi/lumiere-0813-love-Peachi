@@ -311,6 +311,8 @@ body {
           <option value="google/gemma-2-9b-it:free">免费测试桃 · Gemma 9B</option>
           <option value="meta-llama/llama-3.1-8b-instruct:free">免费测试桃 · Llama 8B</option>
           <option value="mistralai/mistral-7b-instruct:free">免费测试桃 · Mistral 7B</option>
+          <option value="qwen/qwen3-8b:free">免费测试桃 · Qwen3 8B</option>
+          <option value="deepseek/deepseek-chat-v3-0324:free">免费测试桃 · DeepSeek V3</option>
         </optgroup>
         <optgroup label="🌸 正式屁屁">
           <option value="anthropic/claude-opus-4">治愈桃 · 归 (Opus)</option>
@@ -381,6 +383,7 @@ body {
 // --- State ---
 let messages = [];
 let loading = false;
+let lastError = '';
 
 // --- Elements ---
 const settingsPage = document.getElementById('settingsPage');
@@ -511,21 +514,25 @@ function renderMessages() {
     messagesArea.appendChild(row);
   }
 
+  if (lastError) {
+    const el = document.createElement('div');
+    el.className = 'error-bubble';
+    el.textContent = '⚠️ ' + lastError;
+    messagesArea.appendChild(el);
+  }
+
   messagesArea.scrollTop = messagesArea.scrollHeight;
 }
 
 function showError(msg) {
-  const el = document.createElement('div');
-  el.className = 'error-bubble';
-  el.textContent = '⚠️ ' + msg;
-  messagesArea.appendChild(el);
-  messagesArea.scrollTop = messagesArea.scrollHeight;
+  lastError = msg;
 }
 
 async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text || loading) return;
 
+  lastError = '';
   messages.push({ role: 'user', content: text });
   chatInput.value = '';
   chatInput.style.height = 'auto';

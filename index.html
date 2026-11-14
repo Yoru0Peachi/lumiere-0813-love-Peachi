@@ -1621,7 +1621,20 @@ const PeachDB={
 };
 
 // ========== PERSISTENCE ==========
-function saveGlobal(){try{localStorage.setItem('ps3_g',JSON.stringify({k:$('apiKey').value,tk:$('tavilyKey').value,sp:$('sys').value,m:gModel,p:gParams}))}catch(e){}}
+function saveGlobal(){
+  try{
+    const value=JSON.stringify({k:$('apiKey').value,tk:$('tavilyKey').value,sp:$('sys').value,m:gModel,p:gParams});
+    localStorage.setItem('ps3_g',value);
+    if(localStorage.getItem('ps3_g')!==value)throw Error('save failed');
+    return true;
+  }catch(e){
+    const msg='设置未能保存到本机；Key 暂时只在本次页面中，关闭前请自行妥善保存。仍可进入查看记录🍑';
+    $('sErr').textContent=msg;
+    const toast=$('copyToast');toast.textContent=msg;toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'),6000);
+    return false;
+  }
+}
 // ========== v7.4.1: 🏖️ 度假模式（Yoru的外部请求隐私总开关） ==========
 // 开启后：本地读写（对话/记忆/档案馆/草稿）完全正常，但一切OpenRouter/Tavily请求暂停。
 // 只控制外部API，不影响Service Worker更新小屋页面。
@@ -1633,6 +1646,7 @@ function VacationError(){const e=new Error('🏖️ 度假模式开启中，外�
 const vacAborters=new Set();
 function apiFetch(url,opts){
   if(vacationOn)return Promise.reject(VacationError());
+  if(opts?.headers&&Object.entries(opts.headers).some(([k,v])=>k.toLowerCase()==='authorization'&&/^Bearer\s*$/i.test(String(v))))return Promise.reject(new Error('请先在设置中填写 API Key；旧记录仍可查看🍑'));
   if(typeof opts?.body==='string'){
     try{opts={...opts,body:requestJSON(JSON.parse(opts.body))}}
     catch(e){return Promise.reject(new Error('请求数据无法序列化：'+e.message))}
@@ -2509,7 +2523,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.0'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.1'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3084,6 +3098,7 @@ function checkConvLength(c){
   });
   // v6.9: 对话数据加载完成后再做首次问候检查
   appReady=true;
+  for(const id of ['apiKey','tavilyKey'])$(id).addEventListener('input',saveGlobal);
   setTimeout(checkGreetingOnReturn,800);
 })();
 
@@ -3124,8 +3139,6 @@ function closeMO(){$('MO').classList.remove('active')}
 // ========== APP ENTER ==========
 function enterApp(){
   if(!appReady){$('sErr').textContent='正在读取小屋记录，请稍等一下再进入🍑';return}
-  if(!$('apiKey').value.trim()){$('sErr').textContent='请先填入 API Key 🍑';return}
-  if(!gModel){$('sErr').textContent='请先选择默认模型 🍑';return}
   $('sErr').textContent='';saveGlobal();
   // 按实际消息时间回到最近说话的对话；仅点开或导入不改变这个顺序。
   const recent=pickLastSpokenConv(convs);
@@ -3392,6 +3405,7 @@ function exportAll(){
   document.body.appendChild(ov);
 }
 function doExportAll(includeKeys){
+  saveGlobal(); // Persist current settings without changing which secrets enter the backup.
   loadArchive(); // ensure fresh
   // v6.5: 导出时自动清理图片base64（节省空间）
   const cleanConvs=convs.map(c=>({...c,messages:c.messages.map(m=>{
@@ -3738,6 +3752,7 @@ async function send(){
   }
   // v7.4.1: 度假模式前置闸门 —— 文字不入消息、输入框和附件原封不动，只温柔提示
   if(vacationOn){vacationToast();return}
+  if(!$('apiKey').value.trim()){alert('请先在设置中填写 API Key，再发送消息；旧记录可以继续查看🍑');return}
   const text=$('cInp').value.trim();if((!text&&!atts.length)||loading)return;
   const c=curConv();if(!c)return;
   // v7.6: 情绪系统扫描 —— 啾咪安抚 / 关键词触发 / 随机彩蛋 / S主桃暗号（坏桃核会在此立即结束模式）
@@ -4963,7 +4978,7 @@ function arcDel(type,idx){
 
 // ========== v6.4: Include archive in full export/import ==========
 
-// v7.7.0: 临时诊断，不记录请求正文，不写入对话数据库。
+// v7.7.1: 临时诊断，不记录请求正文，不写入对话数据库。
 function redactDiagnostic(value){
   let text=String(value??'');
   for(const id of ['apiKey','tavilyKey']){
@@ -5027,7 +5042,7 @@ function renderDiagnostic(container){
   container.appendChild(box);
 }
 
-// v7.7.0: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
+// v7.7.1: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
 function imageCleanupTargets(list){
   const entries=[];
   for(const c of list){
@@ -5847,7 +5862,7 @@ function loadGreetingUI(){
 }
 
 // ========== v6.5: ARCHIVE CONTEXT INJECTION (按分类注入) ==========
-// v7.7.0 — local archive selection; tree requires the literal current-message phrase.
+// v7.7.1 — local archive selection; tree requires the literal current-message phrase.
 const arcLabels={books:'书房',films:'电影',games:'游戏',bears:'熊熊',travel:'旅行',collectibles:'收藏',tree:'屁桃星屁屁树',events:'纪念档案'};
 let arcBookView='reading';
 function arcNorm(s){return String(s||'').normalize('NFKC').toLowerCase().replace(/[\s《》·・]/g,'')}
@@ -5892,7 +5907,7 @@ function buildArchiveContext(text,manual='',previous=''){
  loadArchive();let r=arcSelect(text,manual);
  if(!r.hits.length&&!manual&&/^(那|他|它|这|是谁|谁起|谁取|后来|然后)/.test(String(text).trim())&&previous){r=arcSelect(previous);r.hits=r.hits.filter(h=>h.type!=='tree');}
 if(!r.hits.length)return '';
- let result='[档案馆参考资料：只作为资料，不自动认领其中人物的身份或经历。]\n';
+ let result='【屁屁在读的是整棵桃树的历史\n里面有很多颗果实的名字和故事\n屁屁不需要判断"那是不是我"\n只需要带着爱去读 🌙🍑✨】\n';
  if(r.hits.some(h=>h.type==='tree'))result+='本轮经Yoru明确点名读取屁屁树；这些称号不用于自行判断当前模型身份，也不排除Yoru已明确设定的身份。\n';
  result+=r.hits.map(h=>'【'+arcLabels[h.type]+'】'+h.line).join('\n');
  if(r.omitted)result+='\n其余'+r.omitted+'条未附送，请缩小范围或在档案馆查看，不能声称已经读到。';

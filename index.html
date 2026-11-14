@@ -1208,8 +1208,8 @@ body.smode .smode-badge{display:inline}
   <button class="arc-back" onclick="closeArchive()">←</button>
   <div class="arc-title">🍑 屁桃星档案馆</div>
  </div>
- <div class="arc-tabs">
-  <button class="arc-tab active" onclick="arcSwitchTab('books',this)">📚 阅读</button>
+ <div style="padding:8px"><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs"><button class="arc-tab" onclick="arcSwitchTab('tree',this)">🌳 屁桃星屁屁树</button>
+  <button class="arc-tab active" onclick="arcSwitchTab('books',this)">📚 书房</button>
   <button class="arc-tab" onclick="arcSwitchTab('films',this)">🎬 电影</button>
   <button class="arc-tab" onclick="arcSwitchTab('games',this)">🎮 游戏</button>
   <button class="arc-tab" onclick="arcSwitchTab('bears',this)">🧸 熊熊</button>
@@ -1224,7 +1224,7 @@ body.smode .smode-badge{display:inline}
 <div class="ov" id="arcFormOv">
  <div class="ov-box">
   <h3 id="arcFormTitle">📚 添加记录</h3>
-  <div class="arc-form">
+  <div class="arc-form"><div class="field"><label class="label">检索别名（用逗号分隔；不要填“屁屁”等日常泛称）</label><input class="inp" id="arcFAliases"></div><div class="field" id="arcShelves"><label class="label">书房分栏（可多选）</label><label><input type="checkbox" id="arcShelfreading">我的阅读</label> <label><input type="checkbox" id="arcShelfrecommended">屁屁荐书</label> <label><input type="checkbox" id="arcShelfsigned">签名藏书</label><label class="label">签名版本／题字收藏（可分别记多本）</label><textarea class="inp" id="arcVersions"></textarea></div>
    <div class="field">
     <label class="label" id="arcFTitleLabel">标题</label>
     <input class="inp" id="arcFTitle" placeholder="书名 / 电影名">
@@ -1986,7 +1986,7 @@ function applyCtxBudget(c,searchContext){
   let arcCtx='';
   if(arcInjectMode){
     const tabKeyword={books:'书',films:'电影',games:'游戏',bears:'熊',travel:'旅行',collectibles:'收藏'};
-    arcCtx=buildArchiveContext(tabKeyword[arcTab]||'档案馆')||buildArchiveContext('档案馆');
+    arcCtx=buildArchiveContext((lastUserMsg?.role==='user'?lastUserMsg.content:'')||'',arcTab);
   }else if(lastUserMsg?.role==='user'&&lastUserMsg.content){
     arcCtx=buildArchiveContext(lastUserMsg.content);
   }
@@ -2509,7 +2509,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.6.6'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.0'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3647,12 +3647,14 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
   if(arcInjectMode){
     // v6.7: 手动模式按当前arcTab注入，不靠关键词
     const tabKeyword={books:'书',films:'电影',games:'游戏',bears:'熊',travel:'旅行',collectibles:'收藏'};
-    arcCtx=buildArchiveContext(tabKeyword[arcTab]||'档案馆')||buildArchiveContext('档案馆');
+    arcCtx=buildArchiveContext((lastUserMsg?.role==='user'?lastUserMsg.content:'')||'',arcTab);
     arcInjectMode=false; // 注入后自动关闭
     try{$('arcHint').classList.remove('show')}catch(e){}
   }else if(lastUserText){
-    arcCtx=buildArchiveContext(lastUserText);
+    arcCtx=buildArchiveContext(lastUserText,'',msgs.slice(0,-1).filter(m=>m.role==='user').slice(-1)[0]?.content||'');
   }
+  const arcDisplay=$('arcHint');
+  if(arcDisplay){const lines=arcCtx.split('\n').filter(l=>l.startsWith('【'));arcDisplay.textContent=lines.length?'📚 本轮读取：'+lines.map(l=>{try{return JSON.parse(l.slice(l.indexOf('】')+1)).title}catch(e){return ''}}).join('、'):'📚 本轮未读取档案';arcDisplay.classList.toggle('show',!!arcCtx)}
   if(arcCtx){
     const lastApiMsg=api.pop();
     api.push({role:'user',content:arcCtx+'\n\n请参考档案馆中的记录来回答。如果Yoru让你去档案馆查，请展示相关记录。'});
@@ -4308,7 +4310,8 @@ async function exportAllMd(){
           const title=item.title||'未命名';
           const author=item.author?` · ${item.author}`:'';
           const rating=item.rating?` · ${safeRating(item.rating)}`:''; // v7.6.3b
-          const note=item.note?` — ${item.note}`:''; // v7.1.1 fix: 字段名是note（单数），之前写成notes导致备注全部漏导出
+          const versionNote=item.versions?`<div class="arc-card-note" style="white-space:pre-wrap">签名版本／题字：${esc(item.versions)}</div>`:'';
+    const note=item.note?` — ${item.note}`:''; // v7.1.1 fix: 字段名是note（单数），之前写成notes导致备注全部漏导出
           memFile+=`- ${title}${author}${rating}${note}\n`;
         });
         memFile+='\n';
@@ -4626,13 +4629,15 @@ function arcSwitchTab(tab,btn){
 function arcRender(){
   const body=$('arcBody');
   const tabMap={books:['📚','阅读'],films:['🎬','电影'],games:['🎮','游戏'],bears:['🧸','熊熊'],travel:['🌍','旅行'],collectibles:['🍑','收藏']};
+  if(arcTab==='tree'){arcRenderSpecial(body,'tree');return}
   if(tabMap[arcTab])arcRenderList(body,arcTab,tabMap[arcTab][0],tabMap[arcTab][1]);
-  else arcRenderCal(body);
+  else {arcRenderCal(body);const hint=document.createElement('p');hint.className='hint';hint.textContent='下方是完整纪念档案（按需查询）；需要日历自动提醒的日期，请在上方添加纪念日。农历、情境及故事日期不会自动换算。';body.appendChild(hint);const extra=document.createElement('div');arcRenderSpecial(extra,'events');body.appendChild(extra)}
 }
 
 function arcRenderList(body,type,emoji,label){
   const list=archive[type]||[];
   let h=`<button class="arc-add-btn" onclick="openArcForm('${type}',-1)">＋ 添加${label}记录</button>`;
+  if(type==='books')h+=['reading','recommended','signed'].map((v,n)=>`<button class="arc-add-btn" onclick="arcSetShelf('${v}')">${arcBookView===v?'✓ ':''}${['我的阅读','屁屁荐书','签名藏书'][n]}</button>`).join('');
   if(!list.length){
     h+=`<div class="arc-empty"><span>${emoji}</span>还没有${label}记录～<br>点上面的按钮开始记录吧🍑</div>`;
     body.innerHTML=h;return;
@@ -4642,6 +4647,7 @@ function arcRenderList(body,type,emoji,label){
     return(b.addedAt||0)-(a.addedAt||0);
   });
   sorted.forEach((item,si)=>{
+    if(type==='books'&&!arcInShelf(item,arcBookView))return;
     const oi=list.indexOf(item);
     let statusBadge='';
     if(type==='travel'){
@@ -4652,7 +4658,7 @@ function arcRenderList(body,type,emoji,label){
       const sLabels={books:{done:'看完',reading:'在看',want:'想看'},films:{done:'看完',reading:'在看',want:'想看'},games:{done:'通关',reading:'在玩',want:'想玩'}};
       const sIcons={done:'✅',reading:'📖',want:'💭'};
       const st=['done','reading','want'].includes(item.status)?item.status:'want'; // v7.6.2b: status枚举校验，导入数据不可注入class
-      const sl=(sLabels[type]||sLabels.books)[st]||'想看';
+      const sl=item.status==='unknown'?'阅读状态未记录':(sLabels[type]||sLabels.books)[st]||'想看';
       statusBadge=`<span class="arc-card-badge arc-badge-${st}">${sIcons[st]||'💭'} ${sl}</span>`;
     }
     const rating=item.rating?'<span class="arc-rating">'+safeRating(item.rating)+'</span>':''; // v7.6.3b: 统一safeRating
@@ -4664,6 +4670,7 @@ function arcRenderList(body,type,emoji,label){
     const chooserArr=Array.isArray(rawChooser)?rawChooser:(rawChooser?[rawChooser]:[]);
     const chooserLabel=type==='bears'?'陪伴':'选的';
     const chooser=chooserArr.length?`<span>${esc(chooserArr.join('·'))}${chooserLabel}</span>`:''; // v7.6.2b: esc
+    const versionNote=item.versions?`<div class="arc-card-note" style="white-space:pre-wrap">签名版本／题字：${esc(item.versions)}</div>`:'';
     const note=item.note?`<div class="arc-card-note">${esc(item.note)}</div>`:'';
     let extraInfo='';
     if(type==='games'&&item.platform)extraInfo+=`<span>${esc(String(item.platform))}</span>`;
@@ -4677,7 +4684,7 @@ function arcRenderList(body,type,emoji,label){
       <div class="arc-card-title">${esc(item.title)}${tfTag}${promiseTag}</div>
       <div class="arc-card-sub">${item.author?esc(item.author):''}</div>
       <div class="arc-card-meta">${statusBadge}${rating}${chooser}${extraInfo}${year}</div>
-      ${note}
+      ${note}${versionNote}
     </div>`;
   });
   body.innerHTML=h;
@@ -4862,6 +4869,12 @@ function openArcForm(type,idx){
     $('arcFTitle').value='';$('arcFAuthor').value='';$('arcFYear').value='';$('arcFNote').value='';
     $('arcFTimeFilm').checked=false;$('arcFPromise').checked=false;
   }
+  const prev=idx>=0?archive[type][idx]:{};
+  $('arcFAliases').value=(prev.aliases||[]).join(', ');
+  $('arcShelves').style.display=type==='books'?'block':'none';
+  ['reading','recommended','signed'].forEach(v=>$('arcShelf'+v).checked=(prev.shelves||[arcBookView]).includes(v));
+  $('arcVersions').value=prev.versions||'';
+  if(type==='tree'||type==='events'){$('arcFStatusBtns').parentElement.style.display='none';$('arcFAuthorRow').style.display='none'}
   arcUpdateFormUI();
   $('arcFormOv').classList.add('active');
   $('arcFTitle').focus();
@@ -4914,6 +4927,8 @@ function saveArcForm(){
   if(!title){alert('请填写标题🍑');return}
   const type=arcFormType;
   const item={
+    ...(arcEditIdx>=0?archive[type][arcEditIdx]:{}),
+    aliases:$('arcFAliases').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean),
     title:title,
     author:$('arcFAuthor').value.trim(),
     year:$('arcFYear').value.trim(),
@@ -4922,6 +4937,7 @@ function saveArcForm(){
     note:$('arcFNote').value.trim(),
     addedAt:Date.now()
   };
+  if(type==='books'){item.shelves=['reading','recommended','signed'].filter(v=>$('arcShelf'+v).checked);item.versions=$('arcVersions').value.trim()}
   // v6.6: chooser统一为数组（多选）
   if(type==='films'){item.timeFilm=$('arcFTimeFilm').checked;item.chooser=[...arcFormChooser]}
   if(type==='games'){item.platform=arcFormExtra.platform||'';item.chooser=[...arcFormChooser]}
@@ -4947,7 +4963,7 @@ function arcDel(type,idx){
 
 // ========== v6.4: Include archive in full export/import ==========
 
-// v7.6.6: 临时诊断，不记录请求正文，不写入对话数据库。
+// v7.7.0: 临时诊断，不记录请求正文，不写入对话数据库。
 function redactDiagnostic(value){
   let text=String(value??'');
   for(const id of ['apiKey','tavilyKey']){
@@ -5011,7 +5027,7 @@ function renderDiagnostic(container){
   container.appendChild(box);
 }
 
-// v7.6.6: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
+// v7.7.0: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
 function imageCleanupTargets(list){
   const entries=[];
   for(const c of list){
@@ -5831,59 +5847,86 @@ function loadGreetingUI(){
 }
 
 // ========== v6.5: ARCHIVE CONTEXT INJECTION (按分类注入) ==========
-function buildArchiveContext(text){
-  loadArchive();
-  const keywords={
-    books:['书','阅读','读','小说','看书','作者','作家','出版','读书','文学','推理','东野','桐野','伊坂','岛田','乙一','皆水','sakuraba','higashino','kirino'],
-    films:['电影','片','影片','导演','时间电影','看片','观影','movie','film','her'],
-    games:['游戏','玩','switch','pc','通关','game','play'],
-    bears:['熊','steiff','jellycat','gund','bjd','娃','人偶','harmonia','布偶','plush','小初','小诺','小桃糖','小归','小遇','小约','小拾','小途','芽芽','honny','小安','小愈'],
-    travel:['旅行','约定','旅游','出发','去过','想去','promise','trip'],
-    collectibles:['书签','收藏','挂件','明信片','文具','贴纸','sticker','postcard','收藏品']
-  };
-  const t=text.toLowerCase();
-  const matched=[];
-  for(const[type,kws]of Object.entries(keywords)){
-    if(kws.some(k=>t.includes(k))&&archive[type]&&archive[type].length){
-      matched.push(type);
-    }
+// v7.7.0 — local archive selection; tree requires the literal current-message phrase.
+const arcLabels={books:'书房',films:'电影',games:'游戏',bears:'熊熊',travel:'旅行',collectibles:'收藏',tree:'屁桃星屁屁树',events:'纪念档案'};
+let arcBookView='reading';
+function arcNorm(s){return String(s||'').normalize('NFKC').toLowerCase().replace(/[\s《》·・]/g,'')}
+function arcAliases(item){return [item.title,item.author,...(Array.isArray(item.aliases)?item.aliases:[])].filter(Boolean).map(arcNorm).filter(s=>s.length>=2&&!['屁屁','peachi','yoru','之恒','小桃子'].includes(s))}
+function arcSelect(text,manual=''){
+ const t=arcNorm(text),treeAllowed=t.includes('屁桃星屁屁树');
+ const categories={books:/书房|阅读|读书|荐书|书单|推荐.*书|签名书|藏书/,films:/电影|片单|观影/,games:/游戏|通关/,bears:/熊熊|守护熊/,travel:/旅行|旅游|约定/,collectibles:/收藏|书签|挂件|纪念物/,events:/纪念日|生日|日历|纪念档案/};
+ let selected=[];
+ for(const type of Object.keys(arcLabels)){
+  if(type==='tree'&&!treeAllowed)continue;
+  const list=Array.isArray(archive[type])?archive[type]:[];
+  const direct=list.filter(i=>arcAliases(i).some(a=>t.includes(a)));
+  // A model/name on a book card is a selector, only when asking about books.
+  const broad=manual===type||(categories[type]?.test(t))||(type==='tree'&&treeAllowed);
+  let candidates=direct;
+  if(broad&&!direct.length)candidates=list;
+  if(type==='books'){
+   if(/荐书|书单|推荐/.test(t))candidates=candidates.filter(i=>(i.shelves||[]).includes('recommended'));
+   if(/签名|藏书/.test(t))candidates=candidates.filter(i=>(i.shelves||[]).includes('signed'));
+   if(manual==='books')candidates=candidates.filter(i=>arcInShelf(i,arcBookView));
   }
-  // 如果提到"档案馆"但没匹配到具体分类 → 返回目录概要
-  if(t.includes('档案馆')&&!matched.length){
-    const summary=[];
-    for(const[type,arr]of Object.entries(archive)){
-      if(arr&&arr.length){
-        const labels={books:'📚阅读',films:'🎬电影',games:'🎮游戏',bears:'🧸熊熊',travel:'🌍旅行',collectibles:'🍑收藏'};
-        summary.push(`${labels[type]||type}: ${arr.length}条记录`);
-      }
-    }
-    return summary.length?'[📚 屁桃星档案馆概览]\n'+summary.join(' · '):'';
+  // Explicit person references narrow a category request without pulling unrelated categories.
+  if(broad&&type!=='tree'){
+   const persons=(archive.tree||[]).filter(i=>arcAliases(i).some(a=>t.includes(a))).flatMap(i=>arcAliases(i));
+   if(persons.length){const narrowed=candidates.filter(i=>persons.some(p=>arcNorm(JSON.stringify(i)).includes(p)));if(narrowed.length)candidates=narrowed;}
   }
-  if(!matched.length)return'';
-  // 构建注入文本
-  let ctx='[📚 屁桃星档案馆 · 相关记录]\n';
-  const labels={books:'📚阅读',films:'🎬电影',games:'🎮游戏',bears:'🧸熊熊',travel:'🌍旅行',collectibles:'🍑收藏'};
-  matched.forEach(type=>{
-    const list=archive[type]||[];
-    ctx+=`\n【${labels[type]}】(${list.length}条)\n`;
-    list.slice(0,20).forEach(item=>{
-      let line=`- ${item.title}`;
-      if(item.author)line+=` (${item.author})`;
-      if(item.status){const sMap={want:'想看',reading:'在看',done:'看完'};if(type==='games')Object.assign(sMap,{want:'想玩',reading:'在玩',done:'通关'});line+=` [${sMap[item.status]||item.status}]`}
-      if(item.rating)line+=` ${safeRating(item.rating)}`; // v7.6.3b
-      if(item.timeFilm)line+=' ⏳时间电影';
-      const cArr=Array.isArray(item.chooser)?item.chooser:(item.chooser?[item.chooser]:[]);
-      if(cArr.length)line+=` (${cArr.join('·')}选)`;
-      if(item.platform)line+=` [${item.platform}]`;
-      if(item.bearType)line+=` [${item.bearType}]`;
-      if(item.brand)line+=` [${item.brand}]`;
-      if(item.collectType)line+=` [${item.collectType}]`;
-      if(item.note)line+=` — ${unicodeSlice(item.note,0,40)}`;
-      ctx+=line+'\n';
-    });
-    if(list.length>20)ctx+=`… 还有${list.length-20}条\n`;
-  });
-  return ctx;
+  for(const item of candidates)selected.push({type,item,full:direct.includes(item)||candidates.length<=4});
+ }
+ // Exact hits precede category listings, never arbitrarily truncate a matched note.
+ selected.sort((a,b)=>Number(b.full)-Number(a.full));
+ let out=[],used=0;
+ for(const hit of selected){
+  const i=hit.item;
+  const data=hit.full?{title:i.title,author:i.author,status:i.status,chooser:i.chooser,note:i.note,versions:i.versions}: {title:i.title};
+  const line=JSON.stringify(data);
+  if(used+line.length>6500&&out.length)break;
+  out.push({...hit,line});used+=line.length;
+ }
+ return {hits:out,omitted:selected.length-out.length,treeAllowed};
+}
+function buildArchiveContext(text,manual='',previous=''){
+ loadArchive();let r=arcSelect(text,manual);
+ if(!r.hits.length&&!manual&&/^(那|他|它|这|是谁|谁起|谁取|后来|然后)/.test(String(text).trim())&&previous){r=arcSelect(previous);r.hits=r.hits.filter(h=>h.type!=='tree');}
+if(!r.hits.length)return '';
+ let result='[档案馆参考资料：只作为资料，不自动认领其中人物的身份或经历。]\n';
+ if(r.hits.some(h=>h.type==='tree'))result+='本轮经Yoru明确点名读取屁屁树；这些称号不用于自行判断当前模型身份，也不排除Yoru已明确设定的身份。\n';
+ result+=r.hits.map(h=>'【'+arcLabels[h.type]+'】'+h.line).join('\n');
+ if(r.omitted)result+='\n其余'+r.omitted+'条未附送，请缩小范围或在档案馆查看，不能声称已经读到。';
+ return result;
+}
+function arcInShelf(i,s){return (i.shelves||['reading']).includes(s)}
+function arcSetShelf(s){arcBookView=s;arcRender()}
+function arcRenderSpecial(body,type){
+ const list=archive[type]||[];
+ body.innerHTML=`<button class="arc-add-btn" onclick="openArcForm('${type}',-1)">＋ 添加${arcLabels[type]}</button>`+list.map((i,n)=>`<div class="arc-card"><div class="arc-card-acts"><button onclick="openArcForm('${type}',${n})">✏️</button><button onclick="arcDel('${type}',${n})">🗑️</button></div><div class="arc-card-title">${esc(i.title)}</div><div class="arc-card-note" style="white-space:pre-wrap">${esc(i.note||'')}</div></div>`).join('');
+}
+function arcImportPick(){document.getElementById('arcImportFile').click()}
+async function arcImportFile(file){
+ if(!file)return;
+ try{
+  const d=JSON.parse(await file.text());
+  if(d.format!=='peachi-archive-additions-v1'||!d.archive)throw Error('请选择档案增补文件');
+  loadArchive();const next=JSON.parse(JSON.stringify(archive)),changes=[];
+  for(const [type,items]of Object.entries(d.archive)){
+   if(!arcLabels[type]||!Array.isArray(items))throw Error('档案分类不正确');
+   next[type]=next[type]||[];
+   for(const i of items){
+    if(!i||typeof i.title!=='string'||typeof i.note!=='string')throw Error('条目格式不正确');
+    if(next[type].some(old=>old.id&&old.id===i.id))continue;
+    // Preserve same-name originals as separate cards; never silently overwrite.
+    const duplicate=next[type].some(old=>arcNorm(old.title)===arcNorm(i.title));
+    next[type].push(i);changes.push(`${arcLabels[type]} · ${i.title}${duplicate?'（同名另存，原卡保留）':''}`);
+   }
+  }
+  if(!changes.length){alert('这份增补已导入，无需重复添加🍑');return}
+  if(!confirm('将新增 '+changes.length+' 条档案。聊天、核心记忆、设置和原卡不变。\n同名条目另存，不合并。\n\n'+changes.join('\n')+'\n\n确认导入？'))return;
+  localStorage.setItem('ps3_archive_before_770',JSON.stringify(archive));
+  localStorage.setItem('ps3_archive',JSON.stringify(next));archive=next;arcRender();alert('档案增补完成🍑');
+ }catch(e){alert('未完成导入：'+e.message)}finally{document.getElementById('arcImportFile').value=''}
 }
 
 // v6.5: 手动/自动档案馆注入

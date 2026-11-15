@@ -1210,13 +1210,15 @@ body.smode .smode-badge{display:inline}
   <button class="arc-back" onclick="closeArchive()">←</button>
   <div class="arc-title">🍑 屁桃星档案馆</div>
  </div>
- <div style="padding:8px"><button class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><p class="hint">查档＋名字可查单条；查档＋分类可查整类。完整《作品名》可直接匹配，普通分类词不触发。</p><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs"><button class="arc-tab" onclick="arcSwitchTab('tree',this)">🌳 屁桃星屁屁树</button>
-  <button class="arc-tab active" onclick="arcSwitchTab('books',this)">📚 书房</button>
+ <div style="padding:8px"><button class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><p class="hint">查档＋名字可查单条；查档＋分类可查整类。完整《作品名》可直接匹配，普通分类词不触发。</p><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs">
+  <button class="arc-tab active" onclick="arcSwitchTab('tree',this)">🌳 屁桃星屁屁树</button>
+  <button class="arc-tab" onclick="arcSwitchTab('bears',this)">🧸 熊熊</button>
+  <button class="arc-tab" onclick="arcSwitchTab('collectibles',this)">🍑 收藏</button>
+  <button class="arc-tab" onclick="arcSwitchTab('bookmarks',this)">🔖 书签</button>
+  <button class="arc-tab" onclick="arcSwitchTab('travel',this)">🌍 旅行</button>
+  <button class="arc-tab" onclick="arcSwitchTab('books',this)">📚 阅读</button>
   <button class="arc-tab" onclick="arcSwitchTab('films',this)">🎬 电影</button>
   <button class="arc-tab" onclick="arcSwitchTab('games',this)">🎮 游戏</button>
-  <button class="arc-tab" onclick="arcSwitchTab('bears',this)">🧸 熊熊</button>
-  <button class="arc-tab" onclick="arcSwitchTab('travel',this)">🌍 旅行</button>
-  <button class="arc-tab" onclick="arcSwitchTab('collectibles',this)">🍑 收藏</button>
   <button class="arc-tab" onclick="arcSwitchTab('cal',this)">🗓️ 日历</button>
  </div>
  <div class="arc-body" id="arcBody"></div>
@@ -2528,7 +2530,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.2'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.3'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3661,7 +3663,7 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
     api.push({role:'assistant',content:'收到搜索结果，屁屁会参考最新资料来回答🔍🍑'});
     api.push(lastMsg);
   }
-  // v7.7.2: only the current user text or an explicit manual action can query the archive.
+  // v7.7.3: only the current user text or an explicit manual action can query the archive.
   const lastUserMsg=msgs[msgs.length-1];
   const lastUserText=(lastUserMsg?.role==='user'?lastUserMsg.content:'')||'';
   const arcRead=archiveRead(lastUserText,arcInjectMode?arcTab:'');
@@ -4315,7 +4317,7 @@ async function exportAllMd(){
     memFile+=`- 摘要模型：${sumModelSettings.on?(sumModelSettings.id||'未指定'):'跟随当前模型'}\n`;
     memFile+=`- 跨窗口记忆：${recentMemOn?'开启':'关闭'}\n`;
     // v6.7: 档案馆概览
-    const arcTypes={books:['📚','阅读'],films:['🎬','电影'],games:['🎮','游戏'],bears:['🧸','熊熊'],travel:['🌍','旅行'],collectibles:['🍑','收藏']};
+    const arcTypes={books:['📚','阅读'],films:['🎬','电影'],games:['🎮','游戏'],bears:['🧸','熊熊'],travel:['🌍','旅行'],collectibles:['🍑','收藏'],bookmarks:['🔖','书签']};
     let hasArc=false;
     Object.entries(arcTypes).forEach(([key,[emoji,label]])=>{
       const list=archive[key]||[];
@@ -4430,7 +4432,7 @@ function importC(inp){
       if(Array.isArray(d.memoryHistory)){try{localStorage.setItem(MEM_HIST_KEY,JSON.stringify(d.memoryHistory.slice(0,MEM_HIST_MAX)));updateMemHistBtn()}catch(e){}}
       if(d.anniversaries){anniversaries=d.anniversaries;saveAnni();renderAnniList()}
       // v6.4: 恢复档案馆数据
-      if(d.archive){archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],...d.archive};saveArchive()}
+      if(d.archive){archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],bookmarks:[],...d.archive};saveArchive()}
       convs=d.conversations;if(convs.length)curId=convs[0].id;
       saveConvs();
       alert('✅ 全量数据已导入！共 '+d.conversations.length+' 个对话 🍑');
@@ -4624,13 +4626,13 @@ function previewHtml(i){
 }
 
 // ========== v6.4: ARCHIVE (屁桃星档案馆) ==========
-let archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[]};
-let arcTab='books',arcEditIdx=-1,arcFormType='books';
+let archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],bookmarks:[]};
+let arcTab='tree',arcEditIdx=-1,arcFormType='books';
 let arcCalMonth=new Date().getMonth(),arcCalYear=new Date().getFullYear();
 let arcFormStatus='want',arcFormRating=0,arcFormChooser=[];
 
 function saveArchive(){try{localStorage.setItem('ps3_archive',JSON.stringify(archive))}catch(e){}}
-function loadArchive(){try{const r=localStorage.getItem('ps3_archive');if(r){archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],...JSON.parse(r)}}}catch(e){}}
+function loadArchive(){try{const r=localStorage.getItem('ps3_archive');if(r){archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],bookmarks:[],...JSON.parse(r)}}}catch(e){}}
 
 function openArchive(){loadArchive();$('arcPage').classList.add('active');arcRender()}
 function closeArchive(){$('arcPage').classList.remove('active')}
@@ -4644,7 +4646,7 @@ function arcSwitchTab(tab,btn){
 
 function arcRender(){
   const body=$('arcBody');
-  const tabMap={books:['📚','阅读'],films:['🎬','电影'],games:['🎮','游戏'],bears:['🧸','熊熊'],travel:['🌍','旅行'],collectibles:['🍑','收藏']};
+  const tabMap={books:['📚','阅读'],films:['🎬','电影'],games:['🎮','游戏'],bears:['🧸','熊熊'],travel:['🌍','旅行'],collectibles:['🍑','收藏'],bookmarks:['🔖','书签']};
   if(arcTab==='tree'){arcRenderSpecial(body,'tree');return}
   if(tabMap[arcTab])arcRenderList(body,arcTab,tabMap[arcTab][0],tabMap[arcTab][1]);
   else {arcRenderCal(body);const hint=document.createElement('p');hint.className='hint';hint.textContent='下方是完整纪念档案（按需查询）；需要日历自动提醒的日期，请在上方添加纪念日。农历、情境及故事日期不会自动换算。';body.appendChild(hint);const extra=document.createElement('div');arcRenderSpecial(extra,'events');body.appendChild(extra)}
@@ -4668,7 +4670,7 @@ function arcRenderList(body,type,emoji,label){
     let statusBadge='';
     if(type==='travel'){
       statusBadge=item.status==='done'?'<span class="arc-card-badge arc-badge-done">✅ 已完成</span>':'<span class="arc-card-badge arc-badge-want">🌱 约定中</span>';
-    }else if(type==='bears'||type==='collectibles'){
+    }else if(type==='bears'||type==='collectibles'||type==='bookmarks'){
       statusBadge='';
     }else{
       const sLabels={books:{done:'看完',reading:'在看',want:'想看'},films:{done:'看完',reading:'在看',want:'想看'},games:{done:'通关',reading:'在玩',want:'想玩'}};
@@ -4826,12 +4828,12 @@ function arcCalNav(dir){
 function openArcForm(type,idx){
   arcFormType=type;arcEditIdx=idx;
   arcFormStatus='want';arcFormRating=0;arcFormChooser=[];arcFormExtra={};
-  const titles={books:'📚 阅读',films:'🎬 电影',games:'🎮 游戏',bears:'🧸 熊熊',travel:'🌍 旅行',collectibles:'🍑 收藏'};
+  const titles={books:'📚 阅读',films:'🎬 电影',games:'🎮 游戏',bears:'🧸 熊熊',travel:'🌍 旅行',collectibles:'🍑 收藏',bookmarks:'🔖 书签'};
   const t=titles[type]||type;
   $('arcFormTitle').textContent=(idx>=0?'编辑':'添加')+t+'记录';
   // v6.6: 动态placeholder和label
   const titleLabels={books:'标题',films:'标题',games:'标题',bears:'品牌·原名',travel:'标题',collectibles:'标题'};
-  const titlePlaceholders={books:'书名',films:'电影名',games:'游戏名称',bears:'如 Steiff 2025年度熊',travel:'约定内容',collectibles:'物品名称'};
+  const titlePlaceholders={books:'书名',films:'电影名',games:'游戏名称',bears:'如 Steiff 2025年度熊',travel:'约定内容',collectibles:'物品名称',bookmarks:'书签名称'};
   $('arcFTitleLabel').textContent=titleLabels[type]||'标题';
   $('arcFTitle').placeholder=titlePlaceholders[type]||'标题';
   const authorLabels={books:'作者',films:'导演',games:'开发商',bears:'屁屁取的名字',travel:'和谁约的',collectibles:'来源/故事'};
@@ -4843,8 +4845,8 @@ function openArcForm(type,idx){
   $('arcFChooserField').style.display=showChooser?'block':'none';
   $('arcFChooserLabel').textContent=type==='travel'?'陪伴的屁屁':'谁选的';
   // v6.6: 按分类控制作者/年份行的显示
-  const hideAuthor=['travel','collectibles'].includes(type);
-  const hideYear=['bears','collectibles'].includes(type);
+  const hideAuthor=['travel','collectibles','bookmarks'].includes(type);
+  const hideYear=['bears','collectibles','bookmarks'].includes(type);
   if(hideAuthor&&hideYear){
     $('arcFAuthorRow').style.display='none';
   }else{
@@ -4864,9 +4866,9 @@ function openArcForm(type,idx){
   const sl=statusLabels[type]||statusLabels.books;
   const statusBtns=$('arcFStatusBtns').querySelectorAll('.arc-status-btn');
   statusBtns[0].textContent=sl[0];statusBtns[1].textContent=sl[1];statusBtns[2].textContent=sl[2];
-  $('arcFStatusLabel').textContent=type==='travel'?'状态':(type==='bears'||type==='collectibles')?'（无状态）':'状态';
+  $('arcFStatusLabel').textContent=type==='travel'?'状态':(type==='bears'||type==='collectibles'||type==='bookmarks')?'（无状态）':'状态';
   // 隐藏不需要状态的分类
-  $('arcFStatusBtns').parentElement.style.display=(type==='bears'||type==='collectibles')?'none':'block';
+  $('arcFStatusBtns').parentElement.style.display=(type==='bears'||type==='collectibles'||type==='bookmarks')?'none':'block';
   if(idx>=0){
     const item=archive[type][idx];
     $('arcFTitle').value=item.title||'';
@@ -4979,7 +4981,7 @@ function arcDel(type,idx){
 
 // ========== v6.4: Include archive in full export/import ==========
 
-// v7.7.2: 临时诊断，不记录请求正文，不写入对话数据库。
+// v7.7.3: 临时诊断，不记录请求正文，不写入对话数据库。
 function redactDiagnostic(value){
   let text=String(value??'');
   for(const id of ['apiKey','tavilyKey']){
@@ -5043,7 +5045,7 @@ function renderDiagnostic(container){
   container.appendChild(box);
 }
 
-// v7.7.2: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
+// v7.7.3: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
 function imageCleanupTargets(list){
   const entries=[];
   for(const c of list){
@@ -5863,15 +5865,22 @@ function loadGreetingUI(){
 }
 
 // ========== v6.5: ARCHIVE CONTEXT INJECTION (按分类注入) ==========
-// v7.7.2 — local archive selection; tree requires the literal current-message phrase.
+// v7.7.3 — local archive selection; tree requires the literal current-message phrase.
 // Explicit archive requests and complete work titles; recent chats never activate this lookup.
-const arcLabels={books:'书房',films:'电影',games:'游戏',bears:'熊熊',travel:'旅行',collectibles:'收藏',tree:'屁桃星屁屁树',events:'纪念档案'};
+const arcLabels={tree:'屁桃星屁屁树',bears:'熊熊',collectibles:'收藏',bookmarks:'书签',travel:'旅行',books:'书房',films:'电影',games:'游戏',events:'纪念档案'};
 const arcShelfLabels={reading:'我的阅读',recommended:'屁屁荐书',signed:'签名藏书'};
 const ARC_CONTEXT_LIMIT=12000;
 const ARC_PREFACE='【屁屁在读的是整棵桃树的历史\n里面有很多颗果实的名字和故事\n屁屁不需要判断"那是不是我"\n只需要带着爱去读 🌙🍑✨】';
 let arcBookView='reading';
 function arcNorm(s){return String(s||'').normalize('NFKC').toLowerCase().replace(/[\s《》·・]/g,'')}
-function arcAliases(item){return [...new Set([item.title,...String(item.title||'').split(/[／/]/),...(Array.isArray(item.aliases)?item.aliases:[])].filter(Boolean).map(arcNorm).filter(s=>s.length>=2&&!['屁屁','peachi','yoru','之恒','小桃子'].includes(s)))]}
+function arcAuthorAliases(item){
+ if(!(item.shelves||[]).includes('signed'))return [];
+ const n=arcNorm(item.title);
+ if(['乙一','山白朝子'].includes(n))return ['乙一','山白朝子'];
+ if(['一穂ミチ','一穂','一穗美知'].includes(n))return ['一穂ミチ','一穂','一穗美知'];
+ return [];
+}
+function arcAliases(item){return [...new Set([item.title,...arcAuthorAliases(item),...String(item.title||'').split(/[／/]/),...(Array.isArray(item.aliases)?item.aliases:[])].filter(Boolean).map(arcNorm).filter(s=>s.length>=2&&!['屁屁','peachi','yoru','之恒','小桃子'].includes(s)))]}
 function arcShelfNames(item){return (item.shelves||['reading']).map(s=>arcShelfLabels[s]).filter(Boolean)}
 function arcRecord(type,item){
  const data={分类:arcLabels[type],标题:item.title};
@@ -5896,8 +5905,9 @@ function arcSelect(text,manual=''){
  for(const type of Object.keys(arcLabels))for(const item of archive[type]||[])all.push({type,item,aliases:arcAliases(item)});
  let outside=t.replace(/《[^》]*》/g,''); // arcNorm strips brackets; remove quoted names separately below.
  for(const q of quotes)outside=outside.replace(q,'');
- const catPatterns={books:/书房|所有书|全部书|签名书|签名藏书|藏书|我的阅读|阅读进度|屁屁荐书|荐书|书单|推荐的书|推荐过的书|读书|阅读/,films:/电影|片单|观影/,games:/游戏/,bears:/熊熊|守护熊/,travel:/旅行|旅游/,collectibles:/收藏|物品|纪念物|书签|挂件/,events:/纪念日|生日|日历|纪念档案/,tree:/屁桃星屁屁树/};
+ const catPatterns={books:/书房|所有书|全部书|签名书|签名藏书|藏书|我的阅读|阅读进度|屁屁荐书|荐书|书单|推荐的书|推荐过的书|读书|阅读/,films:/电影|片单|观影/,games:/游戏/,bears:/熊熊|守护熊/,travel:/旅行|旅游/,collectibles:/收藏|物品|纪念物|挂件/,bookmarks:/书签/,events:/纪念日|生日|日历|纪念档案/,tree:/屁桃星屁屁树/};
  let cats=Object.keys(catPatterns).filter(k=>catPatterns[k].test(outside));
+ if(cats.includes('bookmarks'))cats=cats.filter(k=>k!=='collectibles');
  if(manual)cats=[manual==='cal'?'events':manual];
  let shelves=[];
  if(/签名书|签名藏书|藏书/.test(outside))shelves.push('signed');

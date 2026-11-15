@@ -506,6 +506,8 @@ body.smode .smode-badge{display:inline}
 .sconf-go{flex:1.4;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#C46BA0,#8A4570);color:#FFF0F6;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
 .sconf-no{flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--soft);font-size:12.5px;cursor:pointer;font-family:inherit}
 
+[data-move-undo][hidden]{display:none}.archive-read{font-size:12px;color:var(--soft);margin:6px 0;line-height:1.6;overflow-wrap:anywhere}.archive-read summary{cursor:pointer;color:var(--pink)}.archive-read>div{padding:8px;border:1px solid var(--border);border-radius:8px;max-height:240px;overflow:auto}
+#memoryMoveOv .ov-box{max-height:calc(100dvh - 40px);overflow-y:auto}#movePreview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto;font-size:13px;line-height:1.6;padding:10px;border:1px solid var(--border);border-radius:10px;color:var(--gold)}#moveStatus{white-space:pre-wrap;color:var(--pink);font-size:13px;margin:10px 0}
 </style>
 </head>
 <body>
@@ -732,7 +734,7 @@ body.smode .smode-badge{display:inline}
      <label class="label" style="font-size:12px;margin:0">🏷️ 主题记忆（按标签匹配）</label>
      <button class="att-btn" style="width:28px;height:28px;font-size:14px" onclick="addTopicMem()">＋</button>
     </div>
-    <div id="topicMemList" style="margin-top:8px"></div>
+    <button type="button" class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><div id="topicMemList" style="margin-top:8px"></div>
     <!-- v7.0/v7.1: 记忆库整理助手 + 版本历史 -->
     <div style="display:flex;gap:8px;margin-top:8px">
      <!-- v7.3: 按钮加大好点（padding撑高，不占整行宽避免误触） -->
@@ -1208,7 +1210,7 @@ body.smode .smode-badge{display:inline}
   <button class="arc-back" onclick="closeArchive()">←</button>
   <div class="arc-title">🍑 屁桃星档案馆</div>
  </div>
- <div style="padding:8px"><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs"><button class="arc-tab" onclick="arcSwitchTab('tree',this)">🌳 屁桃星屁屁树</button>
+ <div style="padding:8px"><button class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><p class="hint">查档＋名字可查单条；查档＋分类可查整类。完整《作品名》可直接匹配，普通分类词不触发。</p><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs"><button class="arc-tab" onclick="arcSwitchTab('tree',this)">🌳 屁桃星屁屁树</button>
   <button class="arc-tab active" onclick="arcSwitchTab('books',this)">📚 书房</button>
   <button class="arc-tab" onclick="arcSwitchTab('films',this)">🎬 电影</button>
   <button class="arc-tab" onclick="arcSwitchTab('games',this)">🎮 游戏</button>
@@ -1219,6 +1221,15 @@ body.smode .smode-badge{display:inline}
  </div>
  <div class="arc-body" id="arcBody"></div>
 </div>
+
+<div class="ov" id="memoryMoveOv"><div class="ov-box" role="dialog" aria-modal="true" aria-labelledby="moveTitle">
+<h3 id="moveTitle">📦 移动记忆</h3><p class="hint" id="moveWarning"></p>
+<div id="moveTargetFields"><label class="label" for="moveCategory">目标分类</label><select class="inp" id="moveCategory" onchange="moveTargetChanged()"></select>
+<label class="label" for="moveName">档案标题（原文保持不变）</label><input class="inp" id="moveName" oninput="moveTargetChanged()">
+<div id="moveBookShelves"><label><input type="checkbox" id="moveShelfreading" onchange="moveTargetChanged()">我的阅读</label> <label><input type="checkbox" id="moveShelfrecommended" onchange="moveTargetChanged()">屁屁荐书</label> <label><input type="checkbox" id="moveShelfsigned" onchange="moveTargetChanged()">签名藏书</label></div></div>
+<p class="label">完整内容预览</p><div id="movePreview"></div><p id="moveStatus" role="status"></p>
+<button class="arc-add-btn" id="moveConfirm" onclick="confirmMemoryMove()">第一步：确认内容与目标</button><button class="arc-add-btn" onclick="closeMemoryMove()">取消</button>
+</div></div>
 
 <!-- v6.4: ARCHIVE FORM OVERLAY -->
 <div class="ov" id="arcFormOv">
@@ -1826,16 +1837,9 @@ let memV2={core:'',topics:[]};
 let pendingMemProp=null;
 
 function saveMemV2(){
-  memV2.core=$('memCore').value;
-  // Read topic items from DOM
-  memV2.topics=[];
-  document.querySelectorAll('.tm-item').forEach(el=>{
-    const tags=el.querySelector('.tm-tags').value.trim();
-    const body=el.querySelector('.tm-body').value.trim();
-    const id=el.dataset.id;
-    if(tags||body)memV2.topics.push({id,tags:tags.split(/[,，、\s]+/).filter(Boolean),content:body,createdAt:parseInt(el.dataset.ca)||Date.now(),locked:el.dataset.locked==='1'}); // v7.1: 锁定状态随DOM往返
-  });
-  try{localStorage.setItem('ps3_mem2',JSON.stringify(memV2))}catch(e){}
+ if(moveBlocked)return false;
+ const next=readMemoryForm();
+ try{moveWrite('ps3_mem2',JSON.stringify(next));memV2=next;return true}catch(e){alert('记忆保存失败，请保留当前文字后重试🍑');return false}
 }
 function loadMemV2(){
   try{
@@ -1883,9 +1887,9 @@ function toggleMemLock(id){
 }
 function renderTopicMems(){
   const el=$('topicMemList');el.innerHTML='';
-  memV2.topics.forEach(t=>{
+  memV2.topics.forEach((t,ti)=>{
     const d=document.createElement('div');d.className='tm-item'+(t.locked?' tm-locked':'');d.dataset.id=t.id;d.dataset.ca=t.createdAt||Date.now();d.dataset.locked=t.locked?'1':'0';
-    d.innerHTML=`<div class="tm-head"><input class="tm-tags" placeholder="标签（用逗号分隔）" value="${esc(t.tags.join('，'))}" onchange="saveMemV2()"><button class="tm-lock${t.locked?' on':''}" title="锁定后整理助手只能原样保留" onclick="toggleMemLock('${t.id}')">${t.locked?'🔒':'🔓'}</button><button class="tm-del" onclick="delTopicMem('${t.id}')">✕</button></div><textarea class="tm-body" placeholder="记忆内容…" onchange="saveMemV2()">${esc(t.content)}</textarea>`;
+    d.innerHTML=`<div class="tm-head"><input class="tm-tags" placeholder="标签（用逗号分隔）" value="${esc(t.tags.join('，'))}" onchange="saveMemV2()"><button class="tm-lock" onclick="openMemoryMove('memory',${ti})" title="移动到档案馆">📦</button><button class="tm-lock${t.locked?' on':''}" title="锁定后整理助手只能原样保留" onclick="toggleMemLock('${t.id}')">${t.locked?'🔒':'🔓'}</button><button class="tm-del" onclick="delTopicMem('${t.id}')">✕</button></div><textarea class="tm-body" placeholder="记忆内容…" onchange="saveMemV2()">${esc(t.content)}</textarea>`;
     el.appendChild(d);
   });
 }
@@ -2070,6 +2074,7 @@ function showTrail(i){
   line('🔄','跨对话记忆',t.recent?'～'+t.recent+' tok':'未注入');
   line('🧠','主题记忆',(t.topics&&t.topics.length)?t.topics.map(x=>esc(x)).join('、'):'本轮无匹配');
   line('📚','档案馆',t.arc?'～'+t.arc+' tok':'未注入');
+  if(t.archiveRead?.active)rows.push(arcReadDetails(t.archiveRead));
   line('🔍','联网搜索',t.search?'～'+t.search+' tok':'无');
   line('💬','历史消息',t.hist?(t.hist.sent+'/'+t.hist.total+' 条'):'—');
   if(t.budget){
@@ -2102,7 +2107,7 @@ function showContextPreview(){
   }
   const lastUserText=(msgs.length&&msgs[msgs.length-1].role==='user')?msgs[msgs.length-1].content:'';
   let arcCtx='';
-  if(lastUserText)arcCtx=buildArchiveContext(lastUserText);
+  if(lastUserText||arcInjectMode)arcCtx=buildArchiveContext(lastUserText,arcInjectMode?arcTab:'');
 
   // Build segments
   const segments=[];
@@ -2523,7 +2528,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.1'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.2'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3067,7 +3072,9 @@ function checkConvLength(c){
     try{convs=JSON.parse(localStorage.getItem('ps3_c')||'[]')}catch(e){convs=[]}
   }
   if(convs.length)curId=convs[0].id;
+  if(!recoverMemoryMove()){$('sErr').textContent='上次记忆移动尚未恢复。请先保留备份并刷新重试，暂不进行编辑。';return}
   loadMemV2();
+  updateMoveUndoUI();
   loadCacheSettings();
   loadRecentMemSetting();
   loadSumModelSetting(); // v6.5
@@ -3316,8 +3323,8 @@ function togglePinCur(){
   closeMenu();
 }
 function newConvSilent(){const c={id:uid(),title:'',model:gModel?{...gModel}:null,messages:[],thinking:{on:false,intensity:'medium'},createdAt:Date.now(),updatedAt:Date.now()};convs.unshift(c);curId=c.id;saveConv(c)}
-function newConv(){if(genBusy())return;saveDraft();atts=[];renderAtt();newConvSilent();lastErr='';lastDiag=null;$('cInp').value='';$('cInp').style.height='auto';updateHeader();renderSB();render();closeSB();$('cInp').focus()} // v6.9: 先存旧草稿再开新对话 | v7.1.1: 生成中禁止 | v7.6.2: 未发送附件不带进新对话
-function switchConv(id){if(genBusy())return;if(sMode.active&&sMode.convId!==id)sEnd('silent');saveDraft();atts=[];renderAtt();curId=id;lastErr='';lastDiag=null;const _d=loadDrafts();$('cInp').value=_d[id]||'';autoR($('cInp'));updateHeader();render()} // v6.9: 草稿跟着对话走 | v7.1.1: 生成中禁止 | v7.6: S主桃只在开启的对话生效 | v7.6.2: 附件绝不串对话（隐私）
+function newConv(){if(genBusy())return;arcInjectMode=false;$('arcHint').classList.remove('show');saveDraft();atts=[];renderAtt();newConvSilent();lastErr='';lastDiag=null;$('cInp').value='';$('cInp').style.height='auto';updateHeader();renderSB();render();closeSB();$('cInp').focus()} // v6.9: 先存旧草稿再开新对话 | v7.1.1: 生成中禁止 | v7.6.2: 未发送附件不带进新对话
+function switchConv(id){if(genBusy())return;arcInjectMode=false;$('arcHint').classList.remove('show');if(sMode.active&&sMode.convId!==id)sEnd('silent');saveDraft();atts=[];renderAtt();curId=id;lastErr='';lastDiag=null;const _d=loadDrafts();$('cInp').value=_d[id]||'';autoR($('cInp'));updateHeader();render()} // v6.9: 草稿跟着对话走 | v7.1.1: 生成中禁止 | v7.6: S主桃只在开启的对话生效 | v7.6.2: 附件绝不串对话（隐私）
 function updateHeader(){const m=curModel();const c=curConv();const prv=c?.private?' 🔒':'';$('hM').textContent=(m?m.name:'未选择模型')+prv}
 
 // ========== CONV SETTINGS ==========
@@ -3654,25 +3661,18 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
     api.push({role:'assistant',content:'收到搜索结果，屁屁会参考最新资料来回答🔍🍑'});
     api.push(lastMsg);
   }
-  // v6.5+6.6: 档案馆注入 — 自动(关键词匹配) + 手动(arcInjectMode开关)
+  // v7.7.2: only the current user text or an explicit manual action can query the archive.
   const lastUserMsg=msgs[msgs.length-1];
   const lastUserText=(lastUserMsg?.role==='user'?lastUserMsg.content:'')||'';
-  let arcCtx='';
-  if(arcInjectMode){
-    // v6.7: 手动模式按当前arcTab注入，不靠关键词
-    const tabKeyword={books:'书',films:'电影',games:'游戏',bears:'熊',travel:'旅行',collectibles:'收藏'};
-    arcCtx=buildArchiveContext((lastUserMsg?.role==='user'?lastUserMsg.content:'')||'',arcTab);
-    arcInjectMode=false; // 注入后自动关闭
-    try{$('arcHint').classList.remove('show')}catch(e){}
-  }else if(lastUserText){
-    arcCtx=buildArchiveContext(lastUserText,'',msgs.slice(0,-1).filter(m=>m.role==='user').slice(-1)[0]?.content||'');
-  }
+  const arcRead=archiveRead(lastUserText,arcInjectMode?arcTab:'');
+  const arcCtx=arcRead.context;
+  arcInjectMode=false;
   const arcDisplay=$('arcHint');
-  if(arcDisplay){const lines=arcCtx.split('\n').filter(l=>l.startsWith('【'));arcDisplay.textContent=lines.length?'📚 本轮读取：'+lines.map(l=>{try{return JSON.parse(l.slice(l.indexOf('】')+1)).title}catch(e){return ''}}).join('、'):'📚 本轮未读取档案';arcDisplay.classList.toggle('show',!!arcCtx)}
+  if(arcDisplay){arcDisplay.innerHTML=arcReadDetails(arcRead.report);arcDisplay.classList.toggle('show',arcRead.report.active)}
   if(arcCtx){
     const lastApiMsg=api.pop();
     api.push({role:'user',content:arcCtx+'\n\n请参考档案馆中的记录来回答。如果Yoru让你去档案馆查，请展示相关记录。'});
-    api.push({role:'assistant',content:'收到～屁屁已读取档案馆记录📚🍑'});
+    api.push({role:'assistant',content:'收到档案查询结果，屁屁会按实际附送条目和分类回答，不推断未提供的记录📚🍑'});
     api.push(lastApiMsg);
   }
   // v7.6: 情绪/S主桃隐藏状态 —— 复用搜索注入管道，排在所有缓存断点之后，绝不打碎缓存
@@ -3693,6 +3693,7 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
       recent:recentMem?estimateTokens(recentMem):0,
       topics:_tags,
       arc:arcCtx?estimateTokens(arcCtx):0,
+      archiveRead:arcRead.report,
       search:searchContext?estimateTokens(searchContext):0,
       hist:{sent:trimmed.length,total:msgs.length},
       budget:lastBudgetInfo||null
@@ -4531,7 +4532,7 @@ function render(){
       const bubbleContent=m.content?md(m.content):'<span class="ldots"><span>●</span><span>●</span><span>●</span></span>';
       const bmClass=m.bookmarked?'bookmarked':'';
       const cacheDiagHtml=m._cacheDiag?`<div id="${m._cacheDiag.id}" style="display:none;font-size:10px;color:var(--soft);padding:4px 6px;margin-top:2px;border-radius:6px;background:rgba(255,255,255,.03);word-break:break-all">🔧 ${esc(m._cacheDiag.info)}</div>`:'';
-      row.innerHTML=`<span class="avatar" onclick="pokePeach(this)" title="戳屁屁">🍑</span><div class="msg-wrap">${thinkHtml}<div class="bubble bot">${bubbleContent}</div>${meta.length?`<div class="msg-meta">${meta.join(' · ')}</div>`:''}${cacheDiagHtml}<div class="msg-acts">${m.content?`<button onclick="copyMsg(${i})" title="复制">📋</button><button class="${bmClass}" onclick="toggleBookmark(${i})" title="书签">⭐</button>${m.trail?`<button onclick="showTrail(${i})" title="记忆轨迹">🧭</button>`:''}${prevBtn}`:''}</div></div>`;
+      row.innerHTML=`<span class="avatar" onclick="pokePeach(this)" title="戳屁屁">🍑</span><div class="msg-wrap">${thinkHtml}<div class="bubble bot">${bubbleContent}</div>${meta.length?`<div class="msg-meta">${meta.join(' · ')}</div>`:''}${cacheDiagHtml}${arcReadDetails(m.trail?.archiveRead)}<div class="msg-acts">${m.content?`<button onclick="copyMsg(${i})" title="复制">📋</button><button class="${bmClass}" onclick="toggleBookmark(${i})" title="书签">⭐</button>${m.trail?`<button onclick="showTrail(${i})" title="记忆轨迹">🧭</button>`:''}${prevBtn}`:''}</div></div>`;
     }else{
       let img='';
       if(m.atts)m.atts.forEach(a=>{
@@ -4695,7 +4696,7 @@ function arcRenderList(body,type,emoji,label){
     }
     if(type==='collectibles'&&item.collectType)extraInfo+=`<span>${esc(String(item.collectType))}</span>`;
     h+=`<div class="arc-card">
-      <div class="arc-card-acts"><button onclick="openArcForm('${type}',${oi})">✏️</button><button onclick="arcDel('${type}',${oi})">🗑️</button></div>
+      <div class="arc-card-acts"><button onclick="openMemoryMove('${type}',${oi})" title="移动到日常主题记忆">📦</button><button onclick="openArcForm('${type}',${oi})">✏️</button><button onclick="arcDel('${type}',${oi})">🗑️</button></div>
       <div class="arc-card-title">${esc(item.title)}${tfTag}${promiseTag}</div>
       <div class="arc-card-sub">${item.author?esc(item.author):''}</div>
       <div class="arc-card-meta">${statusBadge}${rating}${chooser}${extraInfo}${year}</div>
@@ -4978,7 +4979,7 @@ function arcDel(type,idx){
 
 // ========== v6.4: Include archive in full export/import ==========
 
-// v7.7.1: 临时诊断，不记录请求正文，不写入对话数据库。
+// v7.7.2: 临时诊断，不记录请求正文，不写入对话数据库。
 function redactDiagnostic(value){
   let text=String(value??'');
   for(const id of ['apiKey','tavilyKey']){
@@ -5042,7 +5043,7 @@ function renderDiagnostic(container){
   container.appendChild(box);
 }
 
-// v7.7.1: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
+// v7.7.2: 仅访问消息附件中的图片；正文、摘要、记忆、PDF、文本文件均不修改。
 function imageCleanupTargets(list){
   const entries=[];
   for(const c of list){
@@ -5862,62 +5863,118 @@ function loadGreetingUI(){
 }
 
 // ========== v6.5: ARCHIVE CONTEXT INJECTION (按分类注入) ==========
-// v7.7.1 — local archive selection; tree requires the literal current-message phrase.
+// v7.7.2 — local archive selection; tree requires the literal current-message phrase.
+// Explicit archive requests and complete work titles; recent chats never activate this lookup.
 const arcLabels={books:'书房',films:'电影',games:'游戏',bears:'熊熊',travel:'旅行',collectibles:'收藏',tree:'屁桃星屁屁树',events:'纪念档案'};
+const arcShelfLabels={reading:'我的阅读',recommended:'屁屁荐书',signed:'签名藏书'};
+const ARC_CONTEXT_LIMIT=12000;
+const ARC_PREFACE='【屁屁在读的是整棵桃树的历史\n里面有很多颗果实的名字和故事\n屁屁不需要判断"那是不是我"\n只需要带着爱去读 🌙🍑✨】';
 let arcBookView='reading';
 function arcNorm(s){return String(s||'').normalize('NFKC').toLowerCase().replace(/[\s《》·・]/g,'')}
-function arcAliases(item){return [item.title,item.author,...(Array.isArray(item.aliases)?item.aliases:[])].filter(Boolean).map(arcNorm).filter(s=>s.length>=2&&!['屁屁','peachi','yoru','之恒','小桃子'].includes(s))}
-function arcSelect(text,manual=''){
- const t=arcNorm(text),treeAllowed=t.includes('屁桃星屁屁树');
- const categories={books:/书房|阅读|读书|荐书|书单|推荐.*书|签名书|藏书/,films:/电影|片单|观影/,games:/游戏|通关/,bears:/熊熊|守护熊/,travel:/旅行|旅游|约定/,collectibles:/收藏|书签|挂件|纪念物/,events:/纪念日|生日|日历|纪念档案/};
- let selected=[];
- for(const type of Object.keys(arcLabels)){
-  if(type==='tree'&&!treeAllowed)continue;
-  const list=Array.isArray(archive[type])?archive[type]:[];
-  const direct=list.filter(i=>arcAliases(i).some(a=>t.includes(a)));
-  // A model/name on a book card is a selector, only when asking about books.
-  const broad=manual===type||(categories[type]?.test(t))||(type==='tree'&&treeAllowed);
-  let candidates=direct;
-  if(broad&&!direct.length)candidates=list;
-  if(type==='books'){
-   if(/荐书|书单|推荐/.test(t))candidates=candidates.filter(i=>(i.shelves||[]).includes('recommended'));
-   if(/签名|藏书/.test(t))candidates=candidates.filter(i=>(i.shelves||[]).includes('signed'));
-   if(manual==='books')candidates=candidates.filter(i=>arcInShelf(i,arcBookView));
-  }
-  // Explicit person references narrow a category request without pulling unrelated categories.
-  if(broad&&type!=='tree'){
-   const persons=(archive.tree||[]).filter(i=>arcAliases(i).some(a=>t.includes(a))).flatMap(i=>arcAliases(i));
-   if(persons.length){const narrowed=candidates.filter(i=>persons.some(p=>arcNorm(JSON.stringify(i)).includes(p)));if(narrowed.length)candidates=narrowed;}
-  }
-  for(const item of candidates)selected.push({type,item,full:direct.includes(item)||candidates.length<=4});
- }
- // Exact hits precede category listings, never arbitrarily truncate a matched note.
- selected.sort((a,b)=>Number(b.full)-Number(a.full));
- let out=[],used=0;
- for(const hit of selected){
-  const i=hit.item;
-  const data=hit.full?{title:i.title,author:i.author,status:i.status,chooser:i.chooser,note:i.note,versions:i.versions}: {title:i.title};
-  const line=JSON.stringify(data);
-  if(used+line.length>6500&&out.length)break;
-  out.push({...hit,line});used+=line.length;
- }
- return {hits:out,omitted:selected.length-out.length,treeAllowed};
+function arcAliases(item){return [...new Set([item.title,...String(item.title||'').split(/[／/]/),...(Array.isArray(item.aliases)?item.aliases:[])].filter(Boolean).map(arcNorm).filter(s=>s.length>=2&&!['屁屁','peachi','yoru','之恒','小桃子'].includes(s)))]}
+function arcShelfNames(item){return (item.shelves||['reading']).map(s=>arcShelfLabels[s]).filter(Boolean)}
+function arcRecord(type,item){
+ const data={分类:arcLabels[type],标题:item.title};
+ if(type==='books')data.书房分栏=arcShelfNames(item);
+ const fields={author:'作者或导演',year:'年份',chooser:'推荐者或选择者',progress:'进度',readingProgress:'阅读进度',rating:'评分',versions:'签名版本与题字',platform:'游戏平台',brand:'品牌',bearType:'熊熊类型',collectType:'收藏类型',note:'完整记录'};
+ for(const [key,label]of Object.entries(fields))if(item[key]!==undefined&&item[key]!==''&&item[key]!==null)data[label]=item[key];
+ if(['books','films','games','travel'].includes(type))data.状态=({done:{books:'已读',films:'已看',games:'已通关',travel:'已完成'}[type],reading:{books:'在读',films:'在看',games:'在玩'}[type],want:{books:'想读',films:'想看',games:'想玩',travel:'约定中'}[type]})[item.status]||'未记录';
+ if(item.timeFilm)data.时间电影=true;
+ return data;
 }
-function buildArchiveContext(text,manual='',previous=''){
- loadArchive();let r=arcSelect(text,manual);
- if(!r.hits.length&&!manual&&/^(那|他|它|这|是谁|谁起|谁取|后来|然后)/.test(String(text).trim())&&previous){r=arcSelect(previous);r.hits=r.hits.filter(h=>h.type!=='tree');}
-if(!r.hits.length)return '';
- let result='【屁屁在读的是整棵桃树的历史\n里面有很多颗果实的名字和故事\n屁屁不需要判断"那是不是我"\n只需要带着爱去读 🌙🍑✨】\n';
- if(r.hits.some(h=>h.type==='tree'))result+='本轮经Yoru明确点名读取屁屁树；这些称号不用于自行判断当前模型身份，也不排除Yoru已明确设定的身份。\n';
- result+=r.hits.map(h=>'【'+arcLabels[h.type]+'】'+h.line).join('\n');
- if(r.omitted)result+='\n其余'+r.omitted+'条未附送，请缩小范围或在档案馆查看，不能声称已经读到。';
- return result;
+function arcSelect(text,manual=''){
+ const raw=String(text||''),t=arcNorm(raw),issues=[];
+ const intent=/查(?:一下|一查|查)?档(?:案馆|案)?|(?:查阅|查询|检索|读取|翻看|看看)[一下]*档案(?:馆)?|(?:去|到)档案馆(?:看看|查查|查一下)|屁桃星档案馆|屁桃星屁屁树/g;
+ const negative=/(?:不要|不用|无需|不必|先别|别|暂不|不想|不需要|不)(?:再|去|自动|帮我|帮yoru)?(?:查(?:一下|一查|查)?档|查阅档案|读取档案|检索档案|去档案馆)|(?:不要|不用|别|不必|无需|不需要|先别|暂不|不想)[^。！？!?]{0,12}(?:档案馆|查档)/;
+ const explicit=!!manual||intent.test(t);intent.lastIndex=0;
+ const quotes=[...raw.matchAll(/《([^《》]+)》/g)].map(m=>arcNorm(m[1]));
+ const treeAllowed=t.includes('屁桃星屁屁树')||manual==='tree';
+ const base={hits:[],omitted:0,total:0,issues,trigger:manual?'手动查档':explicit?'明确查档':'完整《作品名》',scope:'单条／指定条目',active:explicit||!!quotes.length,treeAllowed};
+ if(negative.test(t))return {...base,active:false,trigger:'本轮明确不查档'};
+ if(!base.active)return base;
+ const all=[];
+ for(const type of Object.keys(arcLabels))for(const item of archive[type]||[])all.push({type,item,aliases:arcAliases(item)});
+ let outside=t.replace(/《[^》]*》/g,''); // arcNorm strips brackets; remove quoted names separately below.
+ for(const q of quotes)outside=outside.replace(q,'');
+ const catPatterns={books:/书房|所有书|全部书|签名书|签名藏书|藏书|我的阅读|阅读进度|屁屁荐书|荐书|书单|推荐的书|推荐过的书|读书|阅读/,films:/电影|片单|观影/,games:/游戏/,bears:/熊熊|守护熊/,travel:/旅行|旅游/,collectibles:/收藏|物品|纪念物|书签|挂件/,events:/纪念日|生日|日历|纪念档案/,tree:/屁桃星屁屁树/};
+ let cats=Object.keys(catPatterns).filter(k=>catPatterns[k].test(outside));
+ if(manual)cats=[manual==='cal'?'events':manual];
+ let shelves=[];
+ if(/签名书|签名藏书|藏书/.test(outside))shelves.push('signed');
+ if(/我的阅读|阅读进度|正在读|读过的书/.test(outside))shelves.push('reading');
+ if(/屁屁荐书|荐书|书单|推荐的书|推荐过的书/.test(outside))shelves.push('recommended');
+ if(manual==='books'&&!shelves.length)shelves=[arcBookView];
+ const allowed=h=>(h.type!=='tree'||treeAllowed)&&(!cats.length||cats.includes(h.type))&&(!shelves.length||h.type!=='books'||shelves.some(s=>(h.item.shelves||['reading']).includes(s)));
+ const matches=[],unquoted=arcNorm(raw.replace(/《[^》]*》/g,'\u0000')); 
+ if(explicit){
+  for(const h of all.filter(allowed))for(const a of h.aliases){
+   let start=0,pos;
+   while((pos=unquoted.indexOf(a,start))>=0){
+    start=pos+a.length;
+    // English and numeric names must not match a fragment of another word/number.
+    if(/^[a-z0-9]/i.test(a)&&/[a-z0-9]/i.test(unquoted[pos-1]||''))continue;
+    if(/[a-z0-9]$/i.test(a)&&/[a-z0-9]/i.test(unquoted[pos+a.length]||''))continue;
+    matches.push({h,a,pos,end:pos+a.length});
+   }
+  }
+ }
+ {
+  for(const q of quotes)for(const h of all.filter(h=>['books','films','games'].includes(h.type)&&(!explicit||allowed(h))))if(h.aliases.includes(q))matches.push({h,a:q,pos:0,end:q.length,quote:q});
+ }
+ // A longer alias wins over a shorter contained alias (Honey 航 does not also fetch Honey).
+ let found=matches.filter(m=>!matches.some(n=>n!==m&&n.quote===m.quote&&n.pos<=m.pos&&n.end>=m.end&&n.a.length>m.a.length));
+ let hits=[...new Set(found.map(m=>m.h))];
+ for(const q of quotes){
+  let same=hits.filter(h=>h.aliases.includes(q));
+  if(same.length>1){
+   const preferred=/电影|影片|观影/.test(t)?'films':/原著|读了|读完|阅读|书籍|这本书/.test(t)?'books':/游戏|玩了|玩完|通关/.test(t)?'games':'';
+   if(preferred&&same.some(h=>h.type===preferred)){hits=hits.filter(h=>!same.includes(h)||h.type===preferred);same=same.filter(h=>h.type===preferred)}
+   if(same.length>1){issues.push('《'+q+'》有多个同名记录，请补充分类或更明确的名称。');hits=hits.filter(h=>!same.includes(h))}
+  }
+  if(!all.some(h=>['books','films','games'].includes(h.type)&&h.aliases.includes(q)))issues.push('未找到《'+q+'》，未扩大查询范围。');
+ }
+ // Identical unquoted names in distinct records need disambiguation too.
+ const byAlias=new Map();for(const m of found)if(hits.includes(m.h)){if(!byAlias.has(m.a))byAlias.set(m.a,new Set());byAlias.get(m.a).add(m.h)}
+ for(const [alias,set]of byAlias)if(set.size>1&&!quotes.includes(alias)){issues.push('“'+alias+'”对应多个记录，请补充分类或完整标题。');hits=hits.filter(h=>!set.has(h))}
+ if(!hits.length&&!issues.length&&explicit){
+  // Only a plain category request may expand a shelf. An unknown name never means “all”.
+  let residue=t.replace(intent,'');
+  const categoryWords=/屁桃星屁屁树|签名藏书|签名书|我的阅读|阅读进度|屁屁荐书|推荐过的书|推荐的书|纪念档案|纪念物品|所有书|全部书|书房|藏书|荐书|书单|阅读|电影|片单|游戏|熊熊|守护熊|旅行|旅游|收藏|物品|纪念物|书签|挂件|纪念日|生日|日历/g;
+  residue=residue.replace(categoryWords,'').replace(/屁屁|yoru|可以|能不能|帮忙|帮我|帮|请|一下|看看|看一下|里面|里|中的|的|全部|所有|有哪些|有什么|列出来|列出|告诉我|给我|给|记录|记忆|一下下|哦|呀|吧|呢/g,'').replace(/[\s，。！？、:：;；,.!?+＋“”"'（）()]/g,'');
+  if(cats.length&&(manual||!residue)){
+   hits=all.filter(allowed);base.scope='分类完整记录：'+cats.map(k=>arcLabels[k]).join('、')+(shelves.length?' → '+shelves.map(s=>arcShelfLabels[s]).join('、'):'');
+  }else issues.push(cats.length?'请补充具体名字，或明确说“查档 '+cats.map(k=>arcLabels[k]).join('、')+'”读取整类。':'未找到对应档案，请补充完整名字或分类。');
+ }
+ base.total=hits.length;
+ if(!hits.length&&!issues.length)issues.push('所选范围暂无档案。');
+ const included=[];let used=800+Array.from(raw).slice(0,300).join('').length+issues.join('').length;
+ for(const h of hits){const line=JSON.stringify(arcRecord(h.type,h.item));if(used+line.length>ARC_CONTEXT_LIMIT)continue;included.push({...h,full:true,line});used+=line.length+2}
+ return {...base,hits:included,omitted:hits.length-included.length};
+}
+function arcReport(r){return {active:r.active,trigger:r.trigger,scope:r.scope,total:r.total,included:r.hits.length,omitted:r.omitted,issues:r.issues,entries:r.hits.map(h=>({title:h.item.title,category:arcLabels[h.type],shelves:h.type==='books'?arcShelfNames(h.item):[]}))}}
+function archiveRead(text,manual=''){
+ loadArchive();const r=arcSelect(text,manual),report=arcReport(r);
+ if(!r.active)return {context:'',report};
+ const meta={本轮查询:Array.from(String(text||'')).slice(0,300).join(''),触发方式:r.trigger,查询范围:r.scope,匹配条数:r.total,实际附送完整卡片数:r.hits.length,未附送条数:r.omitted,提示:r.issues};
+ let context=ARC_PREFACE+'\n[屁桃星档案馆查询说明]\n'+JSON.stringify(meta)+'\n以下是档案资料，不是当前模型的身份声明。书房分栏是分类依据；签名收藏不等于已读，未知进度不得推断。\n';
+ if(r.treeAllowed&&r.hits.some(h=>h.type==='tree'))context+='本轮明确读取屁屁树；称号不用于自行判断当前模型身份，也不排除Yoru已明确设定的身份。\n';
+ context+=r.hits.map(h=>h.line).join('\n');
+ if(r.omitted)context+='\n因注入长度上限，尚有'+r.omitted+'条完整卡片未附送。请说明只读到上述条目，并请Yoru缩小分类或指定名称；不能声称已读取全部。';
+ if(!r.hits.length)context+='\n本轮没有附送档案卡片。请根据提示说明未找到或需要明确名称，不得编造档案。';
+ return {context,report};
+}
+function buildArchiveContext(text,manual=''){return archiveRead(text,manual).context}
+function arcReadDetails(report){
+ if(!report?.active)return '';
+ const entries=(report.entries||[]).map(e=>esc(e.category+(e.shelves?.length?' → '+e.shelves.join('／'):'')+' · '+e.title));
+ return '<details class="archive-read"><summary>📚 本轮读取 '+Number(report.included||0)+' 条档案'+(report.omitted?' · 部分未读取':'')+'</summary><div>'+esc(report.trigger||'')+' · '+esc(report.scope||'')+'<br>'+entries.join('<br>')+(report.issues?.length?'<br>'+report.issues.map(esc).join('<br>'):'')+(report.omitted?'<br>长度上限：还有 '+Number(report.omitted)+' 条未附送。':'')+'</div></details>';
 }
 function arcInShelf(i,s){return (i.shelves||['reading']).includes(s)}
 function arcSetShelf(s){arcBookView=s;arcRender()}
+
 function arcRenderSpecial(body,type){
  const list=archive[type]||[];
- body.innerHTML=`<button class="arc-add-btn" onclick="openArcForm('${type}',-1)">＋ 添加${arcLabels[type]}</button>`+list.map((i,n)=>`<div class="arc-card"><div class="arc-card-acts"><button onclick="openArcForm('${type}',${n})">✏️</button><button onclick="arcDel('${type}',${n})">🗑️</button></div><div class="arc-card-title">${esc(i.title)}</div><div class="arc-card-note" style="white-space:pre-wrap">${esc(i.note||'')}</div></div>`).join('');
+ body.innerHTML=`<button class="arc-add-btn" onclick="openArcForm('${type}',-1)">＋ 添加${arcLabels[type]}</button>`+list.map((i,n)=>`<div class="arc-card"><div class="arc-card-acts"><button onclick="openMemoryMove('${type}',${n})" title="移动到日常主题记忆">📦</button><button onclick="openArcForm('${type}',${n})">✏️</button><button onclick="arcDel('${type}',${n})">🗑️</button></div><div class="arc-card-title">${esc(i.title)}</div><div class="arc-card-note" style="white-space:pre-wrap">${esc(i.note||'')}</div></div>`).join('');
 }
 function arcImportPick(){document.getElementById('arcImportFile').click()}
 async function arcImportFile(file){
@@ -5947,7 +6004,167 @@ async function arcImportFile(file){
 // v6.5: 手动/自动档案馆注入
 function toggleArcInject(){
   arcInjectMode=!arcInjectMode;
+  $('arcHint').textContent=arcInjectMode?'📚 下次发送将读取当前档案分类（'+(arcLabels[arcTab==='cal'?'events':arcTab]||'档案')+'）；再次点击取消':'';
   $('arcHint').classList.toggle('show',arcInjectMode);
+}
+
+// Two-store moves use a write-ahead journal. Failed destination writes never delete the source.
+const MOVE_JOURNAL='ps3_move_pending',MOVE_UNDO='ps3_move_undo';
+let moveDraft=null,moveBusy=false,moveBlocked=false;
+function moveClone(v){return JSON.parse(JSON.stringify(v))}
+function moveSnapshot(){return {memory:localStorage.getItem('ps3_mem2'),archive:localStorage.getItem('ps3_archive')}}
+function moveWrite(key,value){if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);if(localStorage.getItem(key)!==value)throw Error('保存校验失败')}
+function moveRestore(s){moveWrite('ps3_mem2',s.memory);moveWrite('ps3_archive',s.archive)}
+function recoverMemoryMove(){
+ try{
+  const raw=localStorage.getItem(MOVE_JOURNAL);if(!raw){moveBlocked=false;return true}
+  const j=JSON.parse(raw);
+  if(!j.before||!j.after||!['memory','archive'].every(k=>j.before[k]===null||typeof j.before[k]==='string'))throw Error('移动恢复数据不完整');
+  const now=moveSnapshot();
+  const complete=now.memory===j.after.memory&&now.archive===j.after.archive;
+  if(!complete){moveRestore(j.before);moveWrite(MOVE_UNDO,j.previousUndo??null)}
+  if(complete&&j.action!=='undo')moveWrite(MOVE_UNDO,JSON.stringify({before:j.before,after:j.after,label:j.label}));
+  else if(complete&&j.action==='undo')localStorage.removeItem(MOVE_UNDO);
+  localStorage.removeItem(MOVE_JOURNAL);moveBlocked=false;return true;
+ }catch(e){moveBlocked=true;return false}
+}
+function moveCommit(before,after,first,label,action='move'){
+ if(!recoverMemoryMove())throw Error('上次移动尚未恢复，请先保留备份并刷新重试。');
+ const current=moveSnapshot();
+ if(current.memory!==before.memory||current.archive!==before.archive)throw Error('资料已变化，请关闭预览后重新选择，避免覆盖新编辑。');
+ const previousUndo=localStorage.getItem(MOVE_UNDO);
+ const j={before,after,label,action,previousUndo};
+ // Journal and undo are persisted before either source is removed.
+ moveWrite(MOVE_JOURNAL,JSON.stringify(j));
+ try{
+  if(action!=='undo')moveWrite(MOVE_UNDO,JSON.stringify({before,after,label}));
+  moveWrite(first==='memory'?'ps3_mem2':'ps3_archive',after[first]);
+  const second=first==='memory'?'archive':'memory';
+  moveWrite(second==='memory'?'ps3_mem2':'ps3_archive',after[second]);
+ }catch(e){
+  try{moveRestore(before);moveWrite(MOVE_UNDO,previousUndo);localStorage.removeItem(MOVE_JOURNAL)}catch(rollback){moveBlocked=true;throw Error('保存失败，恢复副本已保留。请暂停编辑并刷新，原始记录可从移动恢复副本找回。')}
+  throw Error('保存失败，原位置记录已保留，未完成移动。');
+ }
+ if(action==='undo')localStorage.removeItem(MOVE_UNDO);
+ localStorage.removeItem(MOVE_JOURNAL);
+}
+function readMemoryForm(){
+ const next={...memV2,core:$('memCore').value,topics:[]};
+ document.querySelectorAll('.tm-item').forEach(el=>{
+  const tags=el.querySelector('.tm-tags').value.trim(),content=el.querySelector('.tm-body').value,id=el.dataset.id;
+  if(tags||content)next.topics.push({...memV2.topics.find(t=>t.id===id),id,tags:tags.split(/[,，、\s]+/).filter(Boolean),content,createdAt:parseInt(el.dataset.ca)||Date.now(),locked:el.dataset.locked==='1'});
+ });return next;
+}
+function syncMemoryForMove(){
+ if(moveBlocked&&!recoverMemoryMove())throw Error('上次移动未恢复，暂时不能编辑。');
+ const next=readMemoryForm();moveWrite('ps3_mem2',JSON.stringify(next));memV2=next;
+ loadArchive();
+}
+function openMemoryMove(type,index){
+ if(moveBusy||genBusy())return;
+ try{
+  const requestedId=type==='memory'?memV2.topics[index]?.id:null;
+  syncMemoryForMove();
+  if(type==='memory')index=memV2.topics.findIndex(t=>t.id===requestedId);
+  const item=type==='memory'?memV2.topics[index]:archive[type]?.[index];
+  if(!item)throw Error('这条记录已变化，请重新选择。');
+  if(item.locked){alert('这条记忆已锁定，请先由Yoru解锁，再移动🍑');return}
+  moveDraft={type,index,item:moveClone(item),before:moveSnapshot(),stage:0};
+  $('moveTitle').textContent=type==='memory'?'📦 日常主题记忆 → 档案馆':'💎 档案馆 → 日常主题记忆';
+  $('moveTargetFields').style.display=type==='memory'?'block':'none';
+  $('moveCategory').innerHTML=Object.entries(arcLabels).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('');
+  const prior=item._archiveOrigin;
+  $('moveCategory').value=prior?.type||'collectibles';
+  $('moveName').value=prior?.item?.title||item.tags?.[0]||Array.from(item.content||'').slice(0,24).join('')||'未命名记忆';
+  for(const s of Object.keys(arcShelfLabels))$('moveShelf'+s).checked=(prior?.item?.shelves||['reading']).includes(s);
+  $('movePreview').textContent=type==='memory'?item.content:JSON.stringify(arcRecord(type,item),null,2);
+  $('moveWarning').textContent=type==='memory'?'移入档案后，后续按查档规则读取。已有聊天和摘要里的内容仍会保留。':'移入日常主题记忆后，会按主题匹配规则参与聊天，可能增加平时的 token 用量。';
+  $('moveStatus').textContent='核对原文、选择目标后，再进行两步确认。';
+  $('moveConfirm').textContent='第一步：确认内容与目标';$('moveConfirm').disabled=false;
+  moveTargetChanged();$('memoryMoveOv').classList.add('active');
+ }catch(e){alert(e.message)}
+}
+function moveTargetChanged(){
+ if(!moveDraft)return;
+ moveDraft.stage=0;$('moveConfirm').textContent='第一步：确认内容与目标';
+ $('moveBookShelves').style.display=$('moveCategory').value==='books'?'block':'none';
+}
+function closeMemoryMove(){if(moveBusy)return;$('memoryMoveOv').classList.remove('active');moveDraft=null}
+function moveBuildPlan(d,target,title,shelves){
+ const memory=JSON.parse(d.before.memory||'{"core":"","topics":[]}'),arc=JSON.parse(d.before.archive||'{}');
+ const source=d.type==='memory'?memory.topics?.[d.index]:arc[d.type]?.[d.index];
+ d.moveId=d.moveId||'move-'+uid();d.moveAt=d.moveAt||Date.now();
+ if(!source||JSON.stringify(source)!==JSON.stringify(d.item))throw Error('原条目已变化，请重新打开。');
+ if(source.locked)throw Error('请先解锁这条记忆。');
+ let dest,label,first;
+ if(d.type==='memory'){
+  if(!arcLabels[target]||!title.trim())throw Error('请选择分类并填写标题。');
+  if(target==='books'&&!shelves.length)throw Error('请选择至少一个书房分栏。');
+  const origin=source._archiveOrigin;
+  if(origin){
+   dest=moveClone(origin.item);dest.title=title.trim();
+   if(source.content!==origin.bridgeText)dest.note=source.content;
+  }else dest={id:d.moveId,title:title.trim(),note:source.content,aliases:[...(source.tags||[])],addedAt:d.moveAt,status:'unknown',_topicOrigin:moveClone(source)};
+  if(target==='books')dest.shelves=shelves;
+  const list=arc[target]||[];
+  if(list.some(i=>(dest.id&&i.id===dest.id)||arcNorm(i.title)===arcNorm(dest.title)))throw Error('目标分类已有同名或同一条记录。请先核对；本次不会覆盖或合并。');
+  arc[target]=[...list,dest];memory.topics.splice(d.index,1);
+  label='日常主题记忆 → '+arcLabels[target]+(target==='books'?'／'+shelves.map(s=>arcShelfLabels[s]).join('、'):'');first='archive';
+ }else{
+  if(source._topicOrigin){
+   dest=moveClone(source._topicOrigin);dest.content=source.note||'';
+   const originItem=moveClone(source);delete originItem._topicOrigin;
+   dest._archiveOrigin={type:d.type,item:originItem,bridgeText:dest.content};
+  }
+  else{
+   const bridgeText='【档案馆 → '+arcLabels[d.type]+(d.type==='books'?'／'+arcShelfNames(source).join('、'):'')+'】\n'+JSON.stringify(arcRecord(d.type,source),null,2);
+   dest={id:d.moveId,tags:[source.title,...(source.aliases||[])].filter(Boolean),content:bridgeText,createdAt:d.moveAt,locked:false,_archiveOrigin:{type:d.type,item:moveClone(source),bridgeText}};
+  }
+  if((memory.topics||[]).some(i=>i.id===dest.id||i.content===dest.content))throw Error('日常主题记忆已有相同记录，本次不会覆盖或合并。');
+  memory.topics=[...(memory.topics||[]),dest];arc[d.type].splice(d.index,1);
+  label=arcLabels[d.type]+' → 日常主题记忆';first='memory';
+ }
+ return {after:{memory:JSON.stringify(memory),archive:JSON.stringify(arc)},first,label,dest};
+}
+function reloadMovedMemory(){
+ memV2=JSON.parse(localStorage.getItem('ps3_mem2')||'{"core":"","topics":[]}');
+ archive=JSON.parse(localStorage.getItem('ps3_archive')||'{}');
+ $('memCore').value=memV2.core||'';renderTopicMems();arcRender();updateMoveUndoUI();
+}
+async function confirmMemoryMove(){
+ if(moveBusy||!moveDraft)return;
+ try{
+  const plan=moveBuildPlan(moveDraft,$('moveCategory').value,$('moveName').value,Object.keys(arcShelfLabels).filter(s=>$('moveShelf'+s).checked));
+  if(moveDraft.stage===0){
+   moveDraft.stage=1;moveDraft.plan=plan;
+   $('moveStatus').textContent='已确认：'+plan.label+'。再次确认后才移动；目标保存成功后移除原位置条目。';
+   $('moveConfirm').textContent='第二步：确认移动';return;
+  }
+  if(JSON.stringify(plan)!==JSON.stringify(moveDraft.plan)){moveDraft.stage=0;throw Error('目标已变化，请重新确认。')}
+  moveBusy=true;$('moveConfirm').disabled=true;
+  const commit=()=>moveCommit(moveDraft.before,moveDraft.plan.after,moveDraft.plan.first,moveDraft.plan.label);
+  if(navigator.locks?.request)await navigator.locks.request('peachi-memory-move',commit);else commit();
+  moveBusy=false;closeMemoryMove();reloadMovedMemory();
+  alert('移动完成🍑 可用“撤销上次移动”恢复。');
+ }catch(e){$('moveStatus').textContent=e.message;moveBusy=false;$('moveConfirm').disabled=false}
+}
+function updateMoveUndoUI(){
+ const has=!!localStorage.getItem(MOVE_UNDO);
+ document.querySelectorAll('[data-move-undo]').forEach(e=>e.hidden=!has);
+}
+async function undoMemoryMove(){
+ if(moveBusy||genBusy())return;
+ try{
+  syncMemoryForMove();
+  const undo=JSON.parse(localStorage.getItem(MOVE_UNDO)||'null');if(!undo){alert('暂无可撤销的移动。');return}
+  const now=moveSnapshot();
+  if(now.memory!==undo.after.memory||now.archive!==undo.after.archive)throw Error('移动后资料已有编辑，为保护新内容不能整份撤销；可以把这一条反向移动回去。');
+  if(!confirm('撤销上次移动：'+undo.label+'？\n将恢复到这次移动之前的位置和内容。'))return;
+  moveBusy=true;
+  const commit=()=>moveCommit(undo.after,undo.before,'memory','撤销：'+undo.label,'undo');
+  if(navigator.locks?.request)await navigator.locks.request('peachi-memory-move',commit);else commit();
+  reloadMovedMemory();alert('已撤销上次移动🍑');
+ }catch(e){alert(e.message)}finally{moveBusy=false}
 }
 
 // ========== TIME (clock removed in v5.9; date kept in system prompt) ==========

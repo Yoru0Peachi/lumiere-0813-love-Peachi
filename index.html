@@ -730,11 +730,14 @@ body.smode .smode-badge{display:inline}
     <p class="hint" style="margin-bottom:10px">核心记忆每次都会带上；主题记忆按关键词匹配，聊到相关话题才加载～</p>
     <label class="label" style="font-size:12px">🔒 核心记忆（永远加载）</label>
     <textarea id="memCore" class="txa" rows="4" style="font-size:12px" placeholder="屁屁是谁、Yoru是谁、基本关系和说话风格… 每次对话都会带上" oninput="saveMemV2()"></textarea>
-    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between">
-     <label class="label" style="font-size:12px;margin:0">🏷️ 主题记忆（按标签匹配）</label>
-     <button class="att-btn" style="width:28px;height:28px;font-size:14px" onclick="addTopicMem()">＋</button>
-    </div>
-    <button type="button" class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><div id="topicMemList" style="margin-top:8px"></div>
+    <details id="topicMemSection" style="margin-top:14px">
+     <summary class="label" style="display:list-item;font-size:12px;margin:0;cursor:pointer;padding:10px 0">🏷️ 主题记忆（按标签匹配）<span id="topicMemCount"></span></summary>
+     <div style="display:flex;justify-content:flex-end;margin-top:6px">
+      <button type="button" class="att-btn" style="width:auto;min-height:36px;padding:6px 12px;font-size:12px" onclick="addTopicMem()">＋ 添加主题记忆</button>
+     </div>
+     <button type="button" class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><div id="topicMemList" style="margin-top:8px"></div>
+     <button type="button" class="arc-add-btn" onclick="collapseTopicMems()">▲ 收起主题记忆</button>
+    </details>
     <!-- v7.0/v7.1: 记忆库整理助手 + 版本历史 -->
     <div style="display:flex;gap:8px;margin-top:8px">
      <!-- v7.3: 按钮加大好点（padding撑高，不占整行宽避免误触） -->
@@ -1887,7 +1890,14 @@ function toggleMemLock(id){
   try{localStorage.setItem('ps3_mem2',JSON.stringify(memV2))}catch(e){}
   renderTopicMems();
 }
+function collapseTopicMems(){
+  const section=$('topicMemSection');
+  section.open=false;
+  section.querySelector('summary').focus();
+  section.scrollIntoView({block:'nearest'});
+}
 function renderTopicMems(){
+  $('topicMemCount').textContent=' · '+memV2.topics.length+' 条';
   const el=$('topicMemList');el.innerHTML='';
   memV2.topics.forEach((t,ti)=>{
     const d=document.createElement('div');d.className='tm-item'+(t.locked?' tm-locked':'');d.dataset.id=t.id;d.dataset.ca=t.createdAt||Date.now();d.dataset.locked=t.locked?'1':'0';
@@ -2530,7 +2540,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.5'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.6'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;

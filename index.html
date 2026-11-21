@@ -1210,7 +1210,7 @@ body.smode .smode-badge{display:inline}
   <button class="arc-back" onclick="closeArchive()">←</button>
   <div class="arc-title">🍑 屁桃星档案馆</div>
  </div>
- <div style="padding:8px"><button class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><p class="hint">查档＋名字可查单条；查档＋分类可查整类。完整《作品名》可直接匹配，普通分类词不触发。</p><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs">
+ <div style="padding:8px"><button class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><p class="hint">查档＋名字可查单条；查档＋分类可查整类。完整｛作品名｝可直接匹配；日常《作品名》和普通分类词不触发。</p><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs">
   <button class="arc-tab active" onclick="arcSwitchTab('tree',this)">🌳 屁桃星屁屁树</button>
   <button class="arc-tab" onclick="arcSwitchTab('bears',this)">🧸 熊熊</button>
   <button class="arc-tab" onclick="arcSwitchTab('collectibles',this)">🍑 收藏</button>
@@ -2530,7 +2530,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.3'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.5'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -5866,7 +5866,7 @@ function loadGreetingUI(){
 
 // ========== v6.5: ARCHIVE CONTEXT INJECTION (按分类注入) ==========
 // v7.7.3 — local archive selection; tree requires the literal current-message phrase.
-// Explicit archive requests and complete work titles; recent chats never activate this lookup.
+// Explicit archive requests or full-width ｛work titles｝; ordinary 《titles》 never activate lookup.
 const arcLabels={tree:'屁桃星屁屁树',bears:'熊熊',collectibles:'收藏',bookmarks:'书签',travel:'旅行',books:'书房',films:'电影',games:'游戏',events:'纪念档案'};
 const arcShelfLabels={reading:'我的阅读',recommended:'屁屁荐书',signed:'签名藏书'};
 const ARC_CONTEXT_LIMIT=12000;
@@ -5896,15 +5896,18 @@ function arcSelect(text,manual=''){
  const intent=/查(?:一下|一查|查)?档(?:案馆|案)?|(?:查阅|查询|检索|读取|翻看|看看)[一下]*档案(?:馆)?|(?:去|到)档案馆(?:看看|查查|查一下)|屁桃星档案馆|屁桃星屁屁树/g;
  const negative=/(?:不要|不用|无需|不必|先别|别|暂不|不想|不需要|不)(?:再|去|自动|帮我|帮yoru)?(?:查(?:一下|一查|查)?档|查阅档案|读取档案|检索档案|去档案馆)|(?:不要|不用|别|不必|无需|不需要|先别|暂不|不想)[^。！？!?]{0,12}(?:档案馆|查档)/;
  const explicit=!!manual||intent.test(t);intent.lastIndex=0;
- const quotes=[...raw.matchAll(/《([^《》]+)》/g)].map(m=>arcNorm(m[1]));
+ const braceNames=[...raw.matchAll(/｛([^｛｝]+)｝/g)].map(m=>arcNorm(m[1])).filter(Boolean);
+ // Keep exact 《title》 matching only when an explicit archive command is present.
+ const quotes=[...new Set([...braceNames,...(explicit?[...raw.matchAll(/《([^《》]+)》/g)].map(m=>arcNorm(m[1])).filter(Boolean):[])])];
  const treeAllowed=t.includes('屁桃星屁屁树')||manual==='tree';
- const base={hits:[],omitted:0,total:0,issues,trigger:manual?'手动查档':explicit?'明确查档':'完整《作品名》',scope:'单条／指定条目',active:explicit||!!quotes.length,treeAllowed};
+ const base={hits:[],omitted:0,total:0,issues,trigger:manual?'手动查档':explicit?'明确查档':'完整｛作品名｝',scope:'单条／指定条目',active:explicit||!!quotes.length,treeAllowed};
  if(negative.test(t))return {...base,active:false,trigger:'本轮明确不查档'};
  if(!base.active)return base;
  const all=[];
  for(const type of Object.keys(arcLabels))for(const item of archive[type]||[])all.push({type,item,aliases:arcAliases(item)});
- let outside=t.replace(/《[^》]*》/g,''); // arcNorm strips brackets; remove quoted names separately below.
- for(const q of quotes)outside=outside.replace(q,'');
+ let outside=raw.replace(/｛[^｛｝]*｝/g,'');
+ if(explicit)outside=outside.replace(/《[^《》]*》/g,'');
+ outside=arcNorm(outside);
  const catPatterns={books:/书房|所有书|全部书|签名书|签名藏书|藏书|我的阅读|阅读进度|屁屁荐书|荐书|书单|推荐的书|推荐过的书|读书|阅读/,films:/电影|片单|观影/,games:/游戏/,bears:/熊熊|守护熊/,travel:/旅行|旅游/,collectibles:/收藏|物品|纪念物|挂件/,bookmarks:/书签/,events:/纪念日|生日|日历|纪念档案/,tree:/屁桃星屁屁树/};
  let cats=Object.keys(catPatterns).filter(k=>catPatterns[k].test(outside));
  if(cats.includes('bookmarks'))cats=cats.filter(k=>k!=='collectibles');
@@ -5915,7 +5918,7 @@ function arcSelect(text,manual=''){
  if(/屁屁荐书|荐书|书单|推荐的书|推荐过的书/.test(outside))shelves.push('recommended');
  if(manual==='books'&&!shelves.length)shelves=[arcBookView];
  const allowed=h=>(h.type!=='tree'||treeAllowed)&&(!cats.length||cats.includes(h.type))&&(!shelves.length||h.type!=='books'||shelves.some(s=>(h.item.shelves||['reading']).includes(s)));
- const matches=[],unquoted=arcNorm(raw.replace(/《[^》]*》/g,'\u0000')); 
+ const matches=[],unquoted=arcNorm(raw.replace(/｛[^｛｝]*｝|《[^《》]*》/g,'\u0000')); 
  if(explicit){
   for(const h of all.filter(allowed))for(const a of h.aliases){
    let start=0,pos;
@@ -5939,9 +5942,9 @@ function arcSelect(text,manual=''){
   if(same.length>1){
    const preferred=/电影|影片|观影/.test(t)?'films':/原著|读了|读完|阅读|书籍|这本书/.test(t)?'books':/游戏|玩了|玩完|通关/.test(t)?'games':'';
    if(preferred&&same.some(h=>h.type===preferred)){hits=hits.filter(h=>!same.includes(h)||h.type===preferred);same=same.filter(h=>h.type===preferred)}
-   if(same.length>1){issues.push('《'+q+'》有多个同名记录，请补充分类或更明确的名称。');hits=hits.filter(h=>!same.includes(h))}
+   if(same.length>1){issues.push('“'+q+'”有多个同名记录，请补充分类或更明确的名称。');hits=hits.filter(h=>!same.includes(h))}
   }
-  if(!all.some(h=>['books','films','games'].includes(h.type)&&h.aliases.includes(q)))issues.push('未找到《'+q+'》，未扩大查询范围。');
+  if(!all.some(h=>['books','films','games'].includes(h.type)&&h.aliases.includes(q)))issues.push('未找到“'+q+'”，未扩大查询范围。');
  }
  // Identical unquoted names in distinct records need disambiguation too.
  const byAlias=new Map();for(const m of found)if(hits.includes(m.h)){if(!byAlias.has(m.a))byAlias.set(m.a,new Set());byAlias.get(m.a).add(m.h)}

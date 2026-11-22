@@ -587,6 +587,24 @@ body.smode .smode-badge{display:inline}
    </div>
   </div>
   <div class="field">
+   <button class="toggle-btn" id="rollScheduleToggle" onclick="togglePanel('rollSchedulePanel','rollScheduleToggle','📜 滚动记忆')">▶ 📜 滚动记忆</button>
+   <div id="rollSchedulePanel" style="display:none;margin-top:10px">
+    <label class="label" style="font-size:12px" for="rollScheduleMode">总结提醒频率</label>
+    <select class="inp" id="rollScheduleMode" onchange="saveRollSchedule()">
+     
+     <option value="follow">跟随上下文轮数（推荐）</option>
+     <option value="custom">单独设置轮数</option>
+     <option value="off">暂停自动提醒</option>
+    </select>
+    <div id="rollScheduleCustom" style="display:none;margin-top:10px">
+     <label class="label" style="font-size:12px" for="rollScheduleEvery">每聊几轮提醒一次</label>
+     <div class="slider-row"><input type="range" id="rollScheduleEvery" min="1" max="100" step="1" value="8" oninput="saveRollSchedule()"><span class="slider-val" id="rollScheduleValue">8轮</span></div>
+    </div>
+    <p class="hint" id="rollScheduleHint" style="margin-top:8px"></p>
+    <p class="hint">一问一答算一轮；到达轮数后提醒，点击才生成，检查后再保存。总结只追加尚未总结的内容，聊天原文仍保留。摘要生成会使用 API。</p>
+   </div>
+  </div>
+  <div class="field">
    <button class="toggle-btn" id="cacheToggle" onclick="togglePanel('cachePanel','cacheToggle','⚡ 缓存设置')">▶ ⚡ 缓存设置</button>
    <div id="cachePanel" style="display:none;margin-top:10px">
     <p class="hint" style="margin-bottom:10px">开启后，系统提示词和核心记忆会被缓存，重复对话可省最多90%输入费用～</p>
@@ -925,6 +943,21 @@ body.smode .smode-badge{display:inline}
   </div>
   <div class="field">
    <label class="label">📜 滚动摘要</label>
+   <details style="margin-bottom:12px"><summary style="cursor:pointer;font-size:12px;color:var(--pink)">⚙️ 总结频率与进度</summary>
+    <div style="margin-top:10px"><label class="label" style="font-size:12px" for="convRollScheduleMode">总结提醒频率</label>
+    <select class="inp" id="convRollScheduleMode" onchange="updateConvRollSchedule()">
+     <option value="inherit">跟随全局设置</option>
+     <option value="follow">跟随上下文轮数（推荐）</option>
+     <option value="custom">单独设置轮数</option>
+     <option value="off">暂停自动提醒</option>
+    </select>
+    <div id="convRollScheduleCustom" style="display:none;margin-top:10px">
+     <label class="label" style="font-size:12px" for="convRollScheduleEvery">每聊几轮提醒一次</label>
+     <div class="slider-row"><input type="range" id="convRollScheduleEvery" min="1" max="100" step="1" value="8" oninput="updateConvRollSchedule()"><span class="slider-val" id="convRollScheduleValue">8轮</span></div>
+    </div>
+    <p class="hint" id="convRollScheduleHint" style="margin-top:8px"></p></div>
+    <p class="hint">仅调整当前对话，点下方保存后生效。跟随上下文时使用这个对话的轮数。</p>
+   </details>
    <div id="rollSumStatus" style="font-size:12px;color:var(--soft);margin-bottom:6px">暂无摘要</div>
    <textarea id="rollSumEdit" class="txa" rows="4" placeholder="屁屁自动生成的对话摘要会出现在这里…" style="font-size:12px;display:none"></textarea>
    <div style="display:flex;gap:6px;margin-top:6px">
@@ -933,7 +966,7 @@ body.smode .smode-badge{display:inline}
     <button class="btn-cancel" id="rollSumGenBtn" style="font-size:11px;padding:6px 10px" onclick="manualRollSum()">📜 手动生成</button>
    </div>
    <div id="convSumModelInfo" style="margin-top:8px;font-size:11px;color:var(--soft);padding:6px 10px;border-radius:8px;background:var(--card);border:1px solid var(--border)"></div>
-   <p class="hint" style="margin-top:4px">旧消息被截断前自动总结，屁屁不会忘记前面聊过什么🍑</p>
+   <p class="hint" style="margin-top:4px">按设定轮数提醒总结，确认保存后用于后续聊天；摘要会概括内容，重要细节请检查后再保存🍑</p>
   </div>
   <div class="field">
    <label class="label">🔒 隐私小屋</label>
@@ -1166,7 +1199,7 @@ body.smode .smode-badge{display:inline}
 
 <!-- ROLLING SUMMARY PROMPT -->
 <div class="mem-proposal" id="rollSumBar" style="display:none">
- <div class="mem-proposal-text" id="rollSumBarText">🍑 对话快到截断点啦～要让屁屁自动总结前面的内容吗？</div>
+ <div class="mem-proposal-text" id="rollSumBarText">🍑 到了整理回忆的时间啦～要生成滚动摘要吗？</div>
  <div class="mem-proposal-btns">
   <button class="btn-cancel" onclick="dismissRollSumBar()">不用</button>
   <button class="btn-ok" id="rollSumBarBtn" onclick="startAutoRollSum()">好的～</button>
@@ -2223,26 +2256,83 @@ let rollSumPending=null; // {convId, fromIdx, toIdx}
 let rollSumReview=null; // v7.6.2b: 审核中摘要的不可变收件地址快照 {convId, fromIdx, toIdx} —— 只在生成成功时写入，确认/跳过时清空
 let rollSumBarTimer=null; // v6.3.1: track timeout so we can cancel it
 
+// v7.7.7: Schedule is stored in existing global params / conversation backups.
+function normalizeRollSchedule(value,allowInherit=false){
+  const fallback=allowInherit?'inherit':'follow';
+  const mode=['follow','custom','off',...(allowInherit?['inherit']:[])].includes(value?.mode)?value.mode:fallback;
+  const n=Number(value?.every);
+  return {mode,every:Number.isFinite(n)&&n>=1?Math.min(100,Math.floor(n)):8};
+}
+function rollScheduleFor(c){
+  const local=normalizeRollSchedule(c?.rollSchedule,true);
+  const setting=c&&local.mode!=='inherit'?local:normalizeRollSchedule(gParams.rollSchedule);
+  const n=Number(c?.ctxTurns??gParams.ctxTurns??10);
+  const turns=Number.isFinite(n)?Math.max(0,Math.min(100,Math.floor(n))):10;
+  return {...setting,turns,interval:setting.mode==='off'?0:setting.mode==='custom'?setting.every:turns};
+}
+// Count actual answered user turns, not raw messages (greetings / failed sends aren't turns).
+function rollTurnEnds(c){
+  const ends=[];let waiting=false;
+  (c.messages||[]).forEach((m,i)=>{
+    if(m.role==='user')waiting=true;
+    else if(m.role==='assistant'&&waiting&&typeof m.content==='string'&&m.content.trim()&&!/\[(?:已停止|度假暂停)\]/.test(m.content)){
+      ends.push(i+1);waiting=false;
+    }
+  });
+  return ends;
+}
+function rollScheduleProgress(c){
+  const settings=rollScheduleFor(c),ends=rollTurnEnds(c);
+  const toIdx=ends.length?ends[ends.length-1]:0;
+  const index=v=>Number.isSafeInteger(v)&&v>=0?v:0;
+  const fromIdx=index(c.summarizedUpTo);
+  const skipped=index(c.rollSumSkippedTo);
+  // Invalid old coverage is not silently reset: leave the existing summary intact.
+  const invalid=fromIdx>(c.messages||[]).length;
+  const anchor=Math.max(fromIdx,skipped<=(c.messages||[]).length?skipped:0);
+  const count=ends.filter(end=>end>anchor).length;
+  return {...settings,fromIdx,toIdx,count,invalid,due:!invalid&&settings.interval>0&&count>=settings.interval&&toIdx>fromIdx};
+}
+function renderRollScheduleControls(prefix,value,c){
+  const setting=normalizeRollSchedule(value,!!c);
+  $(prefix+'Mode').value=setting.mode;
+  $(prefix+'Every').value=setting.every;
+  $(prefix+'Value').textContent=setting.every+'轮';
+  $(prefix+'Custom').style.display=setting.mode==='custom'?'block':'none';
+  const effective=rollScheduleFor(c?{...c,rollSchedule:setting}:null);
+  let hint=effective.mode==='off'?'自动提醒已暂停，仍可手动生成摘要。':effective.interval===0?'上下文为「全部」，跟随模式暂停自动提醒；仍可手动生成，或单独设置频率。':
+    (effective.mode==='follow'?'随上下文联动：':'单独设置：')+'每聊完 '+effective.interval+' 轮提醒一次。';
+  if(effective.interval>effective.turns&&effective.turns>0)hint+=' 提醒间隔大于上下文轮数，部分旧内容可能暂时不随聊天发送；可缩短间隔或及时手动总结。';
+  if(c&&effective.interval>0){
+    const progress=rollScheduleProgress({...c,rollSchedule:setting});
+    hint+=progress.invalid?' 旧摘要覆盖范围与消息数不一致，请先检查摘要。':progress.due?' 已达到提醒轮数，下次聊天结束后提醒。':' 已累计 '+progress.count+' 轮，还差 '+Math.max(0,effective.interval-progress.count)+' 轮提醒。';
+  }
+  $(prefix+'Hint').textContent=hint;
+}
+function loadRollScheduleUI(){renderRollScheduleControls('rollSchedule',gParams.rollSchedule,null)}
+function readRollScheduleControls(prefix){return {mode:$(prefix+'Mode').value,every:Number($(prefix+'Every').value)}}
+function clearRollSchedulePrompt(){
+  // Settings changes cancel a stale reminder, never an in-flight/review snapshot.
+  if(rollSumBarTimer){clearTimeout(rollSumBarTimer);rollSumBarTimer=null}
+  if(!$('rollSumBarBtn').disabled&&!$('rollSumGenBtn').disabled&&!rollSumReview){$('rollSumBar').style.display='none';rollSumPending=null}
+}
+function saveRollSchedule(){
+  gParams.rollSchedule=normalizeRollSchedule(readRollScheduleControls('rollSchedule'));
+  saveGlobal();loadRollScheduleUI();clearRollSchedulePrompt();
+}
+function updateConvRollSchedule(){
+  const c=curConv();if(!c)return;
+  renderRollScheduleControls('convRollSchedule',readRollScheduleControls('convRollSchedule'),{...c,ctxTurns:Number($('convCtxSlider').value)});
+}
 function checkNeedSummary(c){
-  if(!c)return;
-  const turns=c.ctxTurns!=null?c.ctxTurns:gParams.ctxTurns||0;
-  if(turns===0)return;
-  const totalMsgs=c.messages.length;
-  const keepMsgs=turns*2;
-  if(totalMsgs<=keepMsgs+2)return;
-  const truncateStart=totalMsgs-keepMsgs;
-  const summarizedUpTo=c.summarizedUpTo||0;
-  if(truncateStart<=summarizedUpTo)return;
-  // v6.1 fix: 如果Yoru之前跳过了，要等累积足够新消息再提醒
-  // 缓冲 = 半个上下文窗口，最少10条消息（5轮）
-  const skippedTo=c.rollSumSkippedTo||0;
-  const buffer=Math.max(10,Math.floor(keepMsgs/2));
-  if(skippedTo>0&&truncateStart<skippedTo+buffer)return;
-  rollSumPending={convId:c.id,fromIdx:summarizedUpTo,toIdx:truncateStart};
+  if(!c||c.id!==curId||rollSumReview||$('rollSumBarBtn').disabled||$('rollSumGenBtn').disabled)return;
+  const progress=rollScheduleProgress(c);
+  if(!progress.due){clearRollSchedulePrompt();return}
+  rollSumPending={convId:c.id,fromIdx:progress.fromIdx,toIdx:progress.toIdx};
+  $('rollSumBarText').textContent='🍑 已累计 '+progress.count+' 轮对话，要整理成滚动摘要吗？看过后再确认保存～';
   $('rollSumBar').style.display='block';
-  // v6.3.1: 保存timer引用以便取消
-  if(rollSumBarTimer)clearTimeout(rollSumBarTimer);
-  rollSumBarTimer=setTimeout(()=>{if($('rollSumBar').style.display==='block'&&rollSumPending?.convId===c.id)dismissRollSumBar();rollSumBarTimer=null},20000);
+  // No automatic dismissal: an unseen timer must not postpone a memory reminder.
+  if(rollSumBarTimer){clearTimeout(rollSumBarTimer);rollSumBarTimer=null}
 }
 function dismissRollSumBar(){
   // v6.3.1: 清除定时器
@@ -2261,7 +2351,7 @@ async function startAutoRollSum(){
     vacationToast('🏖️ 屁屁正在喝苹果汁～摘要等度假结束再点一次就好🍑🧃✨');
     return;
   }
-  if(!rollSumPending)return;
+  if(!rollSumPending||rollSumReview||$('rollSumBarBtn').disabled||$('rollSumGenBtn').disabled)return;
   // v6.3.1: 用户点了"好的～"，取消20秒自动消失定时器
   if(rollSumBarTimer){clearTimeout(rollSumBarTimer);rollSumBarTimer=null}
   const c=convs.find(x=>x.id===rollSumPending.convId);if(!c)return;
@@ -2283,7 +2373,7 @@ async function startAutoRollSum(){
       $('rollSumBarText').textContent='🏖️ 度假开始～摘要先歇一歇，度假结束后再点一次就好🍑🧃✨';
     }else{
       $('rollSumBarText').textContent='⚠️ 总结失败：'+e.message;
-      setTimeout(dismissRollSumBar,3000);
+      // Keep the reminder available for retry; a failed request is not a user skip.
     }
   }finally{$('rollSumBarBtn').disabled=false}
 }
@@ -2383,15 +2473,12 @@ function dismissRollSumReview(){
 async function manualRollSum(){
   if(vacationOn){vacationToast('🏖️ 屁屁正在喝苹果汁～摘要等度假结束再总结吧🍑🧃✨');return} // v7.4.1
   const c=curConv();if(!c||!c.messages.length){alert('对话没有消息');return}
-  const turns=c.ctxTurns!=null?c.ctxTurns:gParams.ctxTurns||0;
-  const keepMsgs=turns>0?turns*2:c.messages.length;
-  const toIdx=Math.max(0,c.messages.length-keepMsgs);
-  if(toIdx===0&&!c.rollingSummary){
-    // No messages to summarize beyond context window, but user can still summarize all
-    rollSumPending={convId:c.id,fromIdx:0,toIdx:Math.floor(c.messages.length/2)};
-  }else{
-    rollSumPending={convId:c.id,fromIdx:c.summarizedUpTo||0,toIdx:Math.max(toIdx,1)};
-  }
+  if(rollSumReview||$('rollSumBarBtn').disabled||$('rollSumGenBtn').disabled){alert('请先完成正在生成或检查的摘要🍑');return}
+  const progress=rollScheduleProgress(c);
+  if(progress.invalid){alert('旧摘要覆盖范围与消息数不一致，请先检查已有摘要🍑');return}
+  if(progress.toIdx<=progress.fromIdx){alert('还没有新的完整对话可总结，已有摘要会保留🍑');return}
+  clearRollSchedulePrompt();
+  rollSumPending={convId:c.id,fromIdx:progress.fromIdx,toIdx:progress.toIdx};
   $('rollSumGenBtn').disabled=true;$('rollSumGenBtn').textContent='生成中…';
   try{
     // v7.6.2b: await前拍好收件地址快照 —— 生成期间换屋也只会写回原对话
@@ -2540,7 +2627,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.6'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.7'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3090,6 +3177,7 @@ function checkConvLength(c){
   loadCacheSettings();
   loadRecentMemSetting();
   loadSumModelSetting(); // v6.5
+  loadRollScheduleUI();
   loadEmoSettings(); // v7.6: 吃醋桃+S主桃设置
   loadGreetingUI(); // v6.8
   loadCacheLog(); // v6.8
@@ -3128,6 +3216,7 @@ function updateSlider(w){
   else if(w==='maxTok'){gParams.maxTok=parseInt($('maxTokSlider').value);$('maxTokVal').textContent=gParams.maxTok}
   else if(w==='ctx'){gParams.ctxTurns=parseInt($('ctxSlider').value);$('ctxVal').textContent=gParams.ctxTurns===0?'全部':gParams.ctxTurns+'轮'}
   saveGlobal();
+  if(w==='ctx'){loadRollScheduleUI();clearRollSchedulePrompt()}
 }
 function togglePanel(pid,bid,label){const p=$(pid),b=$(bid);if(p.style.display==='none'){p.style.display='block';b.textContent='▼ '+label}else{p.style.display='none';b.textContent='▶ '+label};const sb=$('sysSaveBtn');if(sb&&pid==='sys')sb.style.display=p.style.display}
 
@@ -3353,6 +3442,7 @@ function openConvSettings(){
   loadConvCacheUI();
   // v6.0: Load rolling summary UI
   loadRollSumUI();
+  renderRollScheduleControls('convRollSchedule',c.rollSchedule,c);
   // v6.8: Load privacy mode
   $('convPrivate').checked=c.private||false;
   $('convPrivateLabel').textContent=c.private?'🔒 隐私小屋':'关闭';
@@ -3374,6 +3464,9 @@ function saveConvSet(){
   c.thinking={on:$('thinkOn').checked,intensity:getThinkInt()};
   c.systemPrompt=$('convSys').value.trim()||'';
   c.ctxTurns=parseInt($('convCtxSlider').value);
+  const schedule=normalizeRollSchedule(readRollScheduleControls('convRollSchedule'),true);
+  if(schedule.mode==='inherit')delete c.rollSchedule;else c.rollSchedule=schedule;
+  clearRollSchedulePrompt();
   // Save per-conv cache settings
   c.cacheOn=$('convCacheOn').checked;
   const activeBtn=document.querySelector('#convCacheTtl .think-opt.active');
@@ -3385,6 +3478,7 @@ function saveConvSet(){
 function updateConvCtx(){
   const v=parseInt($('convCtxSlider').value);
   $('convCtxVal').textContent=v===0?'全部':v+'轮';
+  updateConvRollSchedule();
 }
 // Conv-level cache controls
 function setConvCacheTtl(v){
@@ -4435,6 +4529,7 @@ function importC(inp){
         if(d.global.sCfg){sCfg={...sCfg,...d.global.sCfg};try{localStorage.setItem('ps3_scfg',JSON.stringify(sCfg))}catch(e){}}
         if(d.global.greeting){greetingSettings=d.global.greeting;saveGreetingSettings();loadGreetingUI()}
         if(d.global.tavilyKey)$('tavilyKey').value=d.global.tavilyKey;
+        loadRollScheduleUI();clearRollSchedulePrompt();
         saveGlobal();saveCacheSettings();
       }
       if(d.memory){memV2=d.memory;$('memCore').value=memV2.core||'';renderTopicMems();saveMemV2()}

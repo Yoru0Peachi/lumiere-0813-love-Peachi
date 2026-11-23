@@ -441,7 +441,7 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 .search-source-item:last-child{border-bottom:none}
 .search-source-item a{color:#7CB8FF;text-decoration:none;font-weight:600}
 .search-source-item .src-snippet{color:var(--soft);margin-top:2px;display:block}
-/* v7.7.9: readable peach links on dark chat backgrounds, including visited links. */
+/* v7.7.11: readable peach links on dark chat backgrounds, including visited links. */
 .bubble.bot a,.bubble.bot a:visited,.search-source-item a,.search-source-item a:visited{color:#E8A0BF;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.2em;overflow-wrap:anywhere}
 .bubble.bot a strong,.bubble.bot a em,.bubble.bot a code{color:inherit}
 .bubble.bot a:hover,.bubble.bot a:active,.search-source-item a:hover,.search-source-item a:active{color:#FFD1B5}
@@ -613,7 +613,7 @@ body.smode .smode-badge{display:inline}
   <div class="field">
    <button class="toggle-btn" id="cacheToggle" onclick="togglePanel('cachePanel','cacheToggle','⚡ 缓存设置')">▶ ⚡ 缓存设置</button>
    <div id="cachePanel" style="display:none;margin-top:10px">
-    <p class="hint" style="margin-bottom:10px">开启后，系统提示词和核心记忆会被缓存，重复对话可省最多90%输入费用～</p>
+    <p class="hint" style="margin-bottom:10px">控制Claude显式缓存；其他模型的自动缓存由供应商决定。命中率以API返回的读取token为准。</p>
     <div class="think-row">
      <label class="think-sw">
       <input type="checkbox" id="cacheOn" checked onchange="saveCacheSettings()">
@@ -627,9 +627,9 @@ body.smode .smode-badge{display:inline}
       <button class="think-opt" data-v="5min" onclick="setCacheTtl('5min')">5分钟</button>
       <button class="think-opt active" data-v="1h" onclick="setCacheTtl('1h')">1小时（推荐）</button>
      </div>
-     <p class="hint" style="margin-top:6px">默认锁死1小时🔒 · 写入2倍但读取0.1倍（省90%）· 日常不需要改</p>
-     <p class="hint">⚠️ Claude Opus需≥4096 tokens · Sonnet需≥1024 tokens才触发缓存</p>
-     <p class="hint">💡 v5.7优化：系统提示词+核心记忆（稳定）与主题记忆（动态）已拆分，主题记忆变化不再导致缓存miss</p>
+     <p class="hint" style="margin-top:6px">Claude稳定前缀和可复用历史使用所选时长；写入也可能收费，长间隔或频繁改内容会影响收益。</p>
+     <p class="hint">缓存最低长度随具体型号变化；不足时不填充无用文字。</p>
+     <p class="hint">💡 日期和动态记忆放到历史之后。历史开始滚动时不增加Claude历史写入；保留原上下文轮数。</p>
     </div>
    </div>
   </div>
@@ -1009,7 +1009,7 @@ body.smode .smode-badge{display:inline}
   <h3>🔧 缓存调试面板</h3>
   <!-- v6.9: 命中率趋势小图 -->
   <div id="cacheTrendWrap" style="display:none;margin:4px 0 8px">
-   <div style="font-size:11px;color:var(--soft);margin-bottom:4px">🎯 命中率趋势（按天 · 命中tok÷总输入tok）</div>
+   <div style="font-size:11px;color:var(--soft);margin-bottom:4px">🎯 命中率趋势（仅含已返回读取统计的请求）</div>
    <canvas id="cacheTrendCv" style="width:100%;height:72px;display:block"></canvas>
   </div>
   <div id="cacheDebugBody" style="max-height:50vh;overflow-y:auto;padding:4px 0;-webkit-overflow-scrolling:touch"></div>
@@ -2140,7 +2140,7 @@ function showContextPreview(){
   const c=curConv();if(!c){alert('没有选中对话');return}
   const msgs=c.messages||[];
   const curM=c.model||gModel;
-  const useCache=cacheSettings.on&&(c.cacheOn!==false)&&curM&&isClaude(curM.id);
+  const useCache=(c.cacheOn!=null?c.cacheOn:cacheSettings.on)&&curM&&isClaude(curM.id);
   const convSp=c.systemPrompt||'';const globalSp=$('sys').value.trim();const sp=convSp||globalSp;
   const mem=buildMemBlock();
   const memInst=(!c.private&&memV2.core)?'\n\n--- 记忆指令 ---\n当对话中出现值得长期记住的新信息时…[记忆:标签:内容]':'';
@@ -2186,9 +2186,9 @@ function showContextPreview(){
   });
 
   // Render
-  let h='';
+  let h='<p class="hint">按内容分类预览，并非发送顺序；候选不代表已经命中，历史缓存以实际请求及供应商统计为准。</p>';
   segments.forEach((s,i)=>{
-    const cachedBadge=s.cached?'<span class="cached"> 💾缓存</span>':'';
+    const cachedBadge=s.cached?'<span class="cached"> 💾候选</span>':'';
     const preview=s.text.length>200?s.text.slice(0,200)+'…':s.text;
     h+=`<div class="ctx-seg">
       <div class="ctx-seg-head" onclick="this.nextElementSibling.classList.toggle('open')">
@@ -2202,7 +2202,7 @@ function showContextPreview(){
   const cacheRate=totalTok>0?Math.round(cachedTok/totalTok*100):0;
   h+=`<div class="ctx-total">
     📦 合计 ～<b>${totalTok}</b> token<br>
-    ${useCache?'💾 可缓存 ～'+cachedTok+' tok（'+cacheRate+'%）· 缓存TTL: '+(c.cacheTtl||cacheSettings.ttl||'1h'):'⚠️ 缓存已关闭'}<br>
+    ${useCache?'💾 稳定前缀估算（非实际命中）～'+cachedTok+' tok（'+cacheRate+'%）· 缓存TTL: '+(c.cacheTtl||cacheSettings.ttl||'1h'):(curM&&isClaude(curM.id)?'Claude显式缓存已关闭':'自动缓存由供应商决定，以返回统计为准')}<br>
     💬 历史消息 ${trimmed.length}/${msgs.length} 条${turns>0?' （上下文窗口 '+turns+' 轮）':' （全部发送）'}<br>
     ${rollSum?'📜 滚动摘要覆盖前 '+(c.summarizedUpTo||0)+' 条':'📜 无滚动摘要'}
     ${c.private?'<br>🔒 <b>隐私小屋模式</b> — 不写入记忆/不泄露到其他对话':''}
@@ -2633,7 +2633,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.9'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.11'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3658,32 +3658,15 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
   // v6.8: 隐私小屋不触发记忆提议
   const isPrivate=conv?.private||false;
   const memInst=(!isPrivate&&memV2.core)?'\n\n--- 记忆指令 ---\n当对话中出现值得长期记住的新信息时（如新到的物品、新决定、重要事件等），请在回复最末尾用这个格式提议存入记忆库：[记忆:标签关键词:简短内容]。例如：[记忆:熊,steiff:小遇已到家，是2025年年度熊]。不是每条都要提议，只在确实有新的重要信息时才提议。标签要简短，方便日后匹配。':'';
-  // === SYSTEM MESSAGE ===
+  // Stable prefix first. Current date and selected memories follow historical messages.
   const today=new Date();const days=['日','一','二','三','四','五','六'];
   const dateStr=today.getFullYear()+'年'+(today.getMonth()+1)+'月'+today.getDate()+'日 星期'+days[today.getDay()];
-  const anniCtx=getAnniContext();
-  // v6.3 cache fix: 拆分稳定内容和动态内容
+  const dynamicPart=('[今天是'+dateStr+']'+getAnniContext()).trim();
   const stablePart=(sp+mem+memInst).trim();
-  const dynamicPart=('[今天是'+dateStr+']'+anniCtx).trim();
-  if(stablePart||dynamicPart){
-    if(useCache&&stablePart){
-      // 两个content block: 稳定部分(cache) + 日期部分(不cache)
-      // v6.8: 传入实际TTL，5min=ephemeral默认，1h需要显式声明
-      const cacheTtl=conv?.cacheTtl||cacheSettings.ttl||'1h';
-      const cacheCtrl=cacheTtl==='1h'?{type:'ephemeral',ttl:'1h'}:{type:'ephemeral'};
-      api.push({role:'system',content:[
-        {type:'text',text:stablePart,cache_control:cacheCtrl},
-        {type:'text',text:dynamicPart}
-      ]});
-    }else{
-      api.push({role:'system',content:(stablePart+'\n\n'+dynamicPart).trim()});
-    }
+  if(stablePart){
+    const ttl=conv?.cacheTtl||cacheSettings.ttl||'1h';
+    api.push({role:'system',content:useCache?[{type:'text',text:stablePart,cache_control:ttl==='1h'?{type:'ephemeral',ttl:'1h'}:{type:'ephemeral'}}]:stablePart});
   }
-  // === v6.9 cache fix: 重排注入顺序 ===
-  // 缓存只匹配「完全一致的前缀」。旧版顺序是 主题记忆→跨对话记忆→滚动摘要，
-  // 断点打在最后一个注入块上——但主题记忆每轮随最近6条消息变化、跨对话记忆随其他窗口更新变化，
-  // 它们排在前面会导致断点2几乎每轮失效，白付缓存写入费。
-  // 新顺序：滚动摘要（稳定，断点2打这里）→ 跨对话记忆 → 主题记忆（最动态）→ 历史消息。
   // === v6.0: Rolling summary（稳定 · 缓存断点2）===
   if(conv?.rollingSummary){
     const rollText='[屁桃星回忆传送中]\n以下是之前对话的要点回顾：\n'+conv.rollingSummary;
@@ -3696,18 +3679,8 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
     }
     api.push({role:'assistant',content:'收到～屁屁已读取之前的对话回忆🍑'});
   }
-  // === v6.1: Global recent memory（动态，不缓存）===
-  const recentMem=(recentMemOn&&!isPrivate)?buildRecentConvMemory(conv?.id):''; // v6.8: 隐私小屋不读取跨对话记忆
-  if(recentMem){
-    api.push({role:'user',content:'[屁桃星近期记忆传送中]'+recentMem});
-    api.push({role:'assistant',content:'收到～屁屁已读取近期对话的记忆🍑'});
-  }
-  // === DYNAMIC topic memories（最动态，不缓存）===
+  const recentMem=(recentMemOn&&!isPrivate)?buildRecentConvMemory(conv?.id):'';
   const topicMem=buildTopicMemBlock(msgs);
-  if(topicMem){
-    api.push({role:'user',content:'[屁桃星记忆传送中]\n'+topicMem.trim()});
-    api.push({role:'assistant',content:'收到～屁屁已读取相关记忆🍑'});
-  }
   // Context turns truncation: per-conv setting overrides global
   let trimmed=msgs;
   const turns=conv?.ctxTurns!=null?conv.ctxTurns:gParams.ctxTurns||0;
@@ -3724,6 +3697,7 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
   // v6.5: 判断当前模型是否支持图片
   const curMid=(conv?.model||gModel)?.id||'';
   const supImg=modelSupportsImage(curMid);
+  const historyStart=api.length;
   trimmed.forEach(msg=>{
     if(msg.role==='user'&&msg.atts&&msg.atts.length){
       const c=[];if(msg.content)c.push({type:'text',text:msg.content});
@@ -3745,6 +3719,26 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
       api.push({role:'user',content:c});
     }else api.push({role:msg.role,content:msg.content});
   });
+  // Cache history only while the next ordinary turn can retain this opening.
+  // Never expand the chosen context window or cache the current dynamic injections.
+  const historyReusable=trimmed.length===msgs.length&&(!turns||msgs.length+2<=turns*2)&&(!maxHist||msgs.length+2<=maxHist);
+  let historyCached=false;
+  if(useCache&&historyReusable&&trimmed.length>=3&&trimmed.every(m=>!m.atts?.length)){
+    const previous=api[api.length-2];
+    if(api.length-2>=historyStart&&previous?.role==='assistant'&&typeof previous.content==='string'&&previous.content.trim()){
+      const ttl=conv?.cacheTtl||cacheSettings.ttl||'1h';
+      previous.content=[{type:'text',text:previous.content,cache_control:ttl==='1h'?{type:'ephemeral',ttl:'1h'}:{type:'ephemeral'}}];
+      historyCached=true;
+    }
+  }
+  const cachePlan=historyCached?'稳定前缀＋可连续追加的历史':useCache?'稳定前缀；历史滚动或暂不适合缓存':'稳定前缀排列；自动缓存由供应商决定';
+  const current=api[api.length-1];
+  if(current?.role==='user'){
+    api.pop();
+    const extras=[dynamicPart,recentMem?'[屁桃星近期记忆传送中]'+recentMem:'',topicMem?'[屁桃星记忆传送中]\n'+topicMem.trim():''].filter(Boolean).join('\n\n');
+    if(extras){api.push({role:'user',content:extras});api.push({role:'assistant',content:'收到～屁屁已读取本轮日期与相关记忆🍑'})}
+    api.push(current);
+  }
   // v6.3: 联网搜索结果只作为临时上下文注入，不保存到c.messages
   if(searchContext){
     // Insert before the last user message
@@ -3788,6 +3782,7 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
       archiveRead:arcRead.report,
       search:searchContext?estimateTokens(searchContext):0,
       hist:{sent:trimmed.length,total:msgs.length},
+      cachePlan,
       budget:lastBudgetInfo||null
     };
   }catch(e){lastTrail=null}
@@ -3814,7 +3809,7 @@ function updateStreamBubble(content,thinking){
   const lastRow=rows[rows.length-1];
   if(!lastRow)return;
   const last=lastRow.querySelector('.bubble.bot');
-  if(last)last.innerHTML=md(content)||'<span class="ldots"><span>●</span><span>●</span><span>●</span></span>';
+  if(last)last.innerHTML=md(content,citationSources(curMsgs(),curMsgs().length-1))||'<span class="ldots"><span>●</span><span>●</span><span>●</span></span>';
   // v6.9 fix: 之前用全局querySelectorAll('.think-content')取最后一个，
   // 但流式中的新消息还没有思考块，会错误地把思考文字写进「上一条旧消息」的思考块里。
   // 现在只在当前流式消息的行内查找/创建思考块。
@@ -3968,7 +3963,7 @@ async function callApi(c,searchContext){
 
     // v5.9: Per-conversation session_id for stable cache routing
     body.session_id='ps3_'+c.id;
-    // v6.9: OpenRouter官方支持的是user字段（用于粘性路由，让同一对话尽量命中同一provider实例，提高缓存命中率）
+    // session_id controls sticky routing; retain user for backward compatibility.
     body.user='ps3_'+c.id;
 
     const r=await apiFetch('https://openrouter.ai/api/v1/chat/completions',{
@@ -4046,33 +4041,28 @@ async function callApi(c,searchContext){
     if(usage){
       // v6.3: 诊断日志 — Yoru在浏览器控制台看实际返回的usage格式
       console.log('🍑 OpenRouter usage raw:',JSON.stringify(usage));
-      const pt=usage.prompt_tokens||0,ct=usage.completion_tokens||0;
+      const pt=usage.prompt_tokens??((usage.input_tokens||0)+(usage.cache_read_input_tokens||0)+(usage.cache_creation_input_tokens||0)),ct=usage.completion_tokens??usage.output_tokens??0;
       const ptd=usage.prompt_tokens_details||{};
       // v6.3: 同时检查 OpenAI格式 和 Anthropic原生格式 的缓存字段
       const cachedTok=ptd.cached_tokens||usage.cache_read_input_tokens||0;
       const cacheWriteTok=ptd.cache_write_tokens||usage.cache_creation_input_tokens||0;
-      const regularTok=pt-cachedTok-cacheWriteTok;
+      const cacheReported=Number.isFinite(ptd.cached_tokens)||Number.isFinite(usage.cache_read_input_tokens);
+      const regularTok=Math.max(0,pt-cachedTok-cacheWriteTok);
       let inputCost;
-      if(cachedTok>0||cacheWriteTok>0){
+      if(isClaude(m.id)&&(cachedTok>0||cacheWriteTok>0)){
         const curTtl=c.cacheTtl||cacheSettings.ttl||'1h';
         const writeMultiplier=curTtl==='1h'?2.0:1.25;
         inputCost=regularTok*m.pp+cachedTok*m.pp*0.1+cacheWriteTok*m.pp*writeMultiplier;
       }else{inputCost=pt*m.pp}
-      const cost=inputCost+ct*m.cp;
+      const costReported=typeof usage.cost==='number'&&Number.isFinite(usage.cost)&&usage.cost>=0;
+      const cost=costReported?usage.cost:inputCost+ct*m.cp;
       msg.tok={p:pt,c:ct,t:pt+ct};msg.cost=cost;
       // v6.9: 记录本条相对"完全无缓存"的净省额（命中省90%，写入轮多付，可能为负，如实记）
-      if(cachedTok>0||cacheWriteTok>0)msg.save=(pt*m.pp+ct*m.cp)-cost;
-      // v6.3: Show cache status with diagnostic
-      if(cachedTok>0||cacheWriteTok>0){
-        msg.cache={read:cachedTok,write:cacheWriteTok};
-        logCache({model:m.name,read:cachedTok,write:cacheWriteTok,promptTok:pt,compTok:ct,cost});
-      }else if(useCache){
-        // 保存原始字段名帮助诊断
-        const rawKeys=Object.keys(usage).filter(k=>k!=='prompt_tokens'&&k!=='completion_tokens'&&k!=='total_tokens').join(',');
-        const ptdKeys=ptd?Object.keys(ptd).join(','):'';
-        msg.cache={attempted:true,read:0,write:0,rawKeys:(rawKeys||'无额外字段')+(ptdKeys?'|ptd:'+ptdKeys:'')};
-        logCache({model:m.name,read:0,write:0,promptTok:pt,compTok:ct,cost,rawKeys:msg.cache.rawKeys});
-      }
+      if(isClaude(m.id)&&(cachedTok>0||cacheWriteTok>0))msg.save=(pt*m.pp+ct*m.cp)-cost;
+      msg.costEstimated=!costReported;
+      msg.cache={attempted:useCache,reported:cacheReported,read:cachedTok,write:cacheWriteTok,plan:lastTrail?.cachePlan||''};
+      logCache({model:m.name,read:cachedTok,write:cacheWriteTok,promptTok:pt,compTok:ct,cost,
+        reported:cacheReported,costEstimated:!costReported,plan:msg.cache.plan});
     }
 
     // Detect memory proposals
@@ -4540,7 +4530,37 @@ function importC(inp){
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 // v7.6.3b: 评分统一钳制0-5 —— 导入的负数/超大值不会让repeat()抛Invalid count或撑爆页面
 function safeRating(r){return'🍑'.repeat(Math.max(0,Math.min(5,parseInt(r)||0)))}
-function md(s){try{const raw=marked.parse(s);return typeof DOMPurify!=='undefined'?DOMPurify.sanitize(raw,{ADD_ATTR:['target']}):esc(s)}catch(e){return esc(s)}}
+// Only the immediately preceding search turn supplies numbered citations.
+function citationSources(msgs,i){
+  const user=msgs[i-1];
+  return user?.role==='user'&&user.searched&&Array.isArray(user.searchSources)?user.searchSources:[];
+}
+function linkSearchCitations(html,sources){
+  if(!Array.isArray(sources)||!sources.length)return html;
+  const root=document.createElement('div');root.innerHTML=html;
+  const walker=document.createTreeWalker(root,4),nodes=[];
+  while(walker.nextNode()){
+    const n=walker.currentNode;
+    if(!n.parentElement.closest('a,code,pre,script,style,textarea')&&/\[\d+\]/.test(n.nodeValue))nodes.push(n);
+  }
+  nodes.forEach(node=>{
+    const text=node.nodeValue,fragment=document.createDocumentFragment();let end=0,changed=false;
+    const re=/\[([1-9]\d*)\]/g;let match;
+    while((match=re.exec(text))){
+      const source=sources[Number(match[1])-1];if(!source?.url)continue;
+      let url;try{url=new URL(source.url)}catch(e){continue}
+      if(!/^https?:$/.test(url.protocol)||url.username||url.password)continue;
+      fragment.appendChild(document.createTextNode(text.slice(end,match.index)));
+      const a=document.createElement('a');a.href=url.href;a.textContent=match[0];
+      a.target='_blank';a.rel='noopener noreferrer';
+      a.title=String(source.title||url.hostname);a.setAttribute('aria-label','来源 '+match[1]+'：'+a.title);
+      fragment.appendChild(a);end=re.lastIndex;changed=true;
+    }
+    if(changed){fragment.appendChild(document.createTextNode(text.slice(end)));node.replaceWith(fragment)}
+  });
+  return root.innerHTML;
+}
+function md(s,sources=[]){try{const raw=marked.parse(s);return typeof DOMPurify!=='undefined'?linkSearchCitations(DOMPurify.sanitize(raw,{ADD_ATTR:['target']}),sources):esc(s)}catch(e){return esc(s)}}
 function toggleThinkBlock(id){const el=document.getElementById(id);if(el)el.classList.toggle('open')}
 function fmtTime(ts){if(!ts)return'';const d=new Date(ts);const now=new Date();const h=d.getHours().toString().padStart(2,'0');const m=d.getMinutes().toString().padStart(2,'0');const time=h+':'+m;const isToday=d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();if(isToday)return time;const mm=(d.getMonth()+1);const dd=d.getDate();const isThisYear=d.getFullYear()===now.getFullYear();return(isThisYear?mm+'月'+dd+'日':d.getFullYear()+'/'+mm+'/'+dd)+' '+time}
 
@@ -4602,13 +4622,15 @@ function render(){
       if(m.cache?.write>0)meta.push(`📝${m.cache.write.toLocaleString()}写入`);
       if(m.cache?.read>0)meta.push(`💾${m.cache.read.toLocaleString()}命中`);
       // v6.7→v6.8: 缓存诊断 — miss时简短显示，详细信息点击展开
-      if(m.cache?.attempted&&!m.cache?.write&&!m.cache?.read){
+      if(m.cache?.attempted&&m.cache?.reported!==false&&!m.cache?.write&&!m.cache?.read){
         const diagId='cdiag_'+i;
         const rawInfo=m.cache.rawKeys||'';
         meta.push(`<span onclick="event.stopPropagation();var el=document.getElementById('${diagId}');if(el)el.style.display=el.style.display==='none'?'block':'none'" style="cursor:pointer">⚠️未命中</span>`);
         // 详细信息作为隐藏div在后面渲染
         if(rawInfo)m._cacheDiag={id:diagId,info:rawInfo};
       }
+      if(m.cache?.reported===false)meta.push('💾 读取统计未提供');
+      if(m.costEstimated===false)meta.push('API费用');
       if(m.tok?.p>0&&m.cache){
         // 缓存率
         const total=m.tok.p;const cached=m.cache.read||0;
@@ -4624,7 +4646,7 @@ function render(){
       const hasHtml=m.content&&(m.content.includes('<!DOCTYPE html>')||m.content.includes('<!doctype html>')||/```html\s*\n[\s\S]*<html[\s>]/i.test(m.content));
       const prevBtn=hasHtml?`<button class="html-prev-btn" onclick="previewHtml(${i})">🍑 打开预览</button>`:'';
       // v5.9: Show loading dots if content is empty (streaming in progress)
-      const bubbleContent=m.content?md(m.content):'<span class="ldots"><span>●</span><span>●</span><span>●</span></span>';
+      const bubbleContent=m.content?md(m.content,citationSources(msgs,i)):'<span class="ldots"><span>●</span><span>●</span><span>●</span></span>';
       const bmClass=m.bookmarked?'bookmarked':'';
       const cacheDiagHtml=m._cacheDiag?`<div id="${m._cacheDiag.id}" style="display:none;font-size:10px;color:var(--soft);padding:4px 6px;margin-top:2px;border-radius:6px;background:rgba(255,255,255,.03);word-break:break-all">🔧 ${esc(m._cacheDiag.info)}</div>`:'';
       row.innerHTML=`<span class="avatar" onclick="pokePeach(this)" title="戳屁屁">🍑</span><div class="msg-wrap">${thinkHtml}<div class="bubble bot">${bubbleContent}</div>${meta.length?`<div class="msg-meta">${meta.join(' · ')}</div>`:''}${cacheDiagHtml}${arcReadDetails(m.trail?.archiveRead)}<div class="msg-acts">${m.content?`<button onclick="copyMsg(${i})" title="复制">📋</button><button class="${bmClass}" onclick="toggleBookmark(${i})" title="书签">⭐</button>${m.trail?`<button onclick="showTrail(${i})" title="记忆轨迹">🧭</button>`:''}${prevBtn}`:''}</div></div>`;
@@ -4676,9 +4698,9 @@ function render(){
           const srcId='src_'+i;
           const srcColor=isDeep?'rgba(200,155,255,':'rgba(124,184,255,';
           searchTag+=`<div class="search-sources" style="border-color:${srcColor}.15)"><button class="search-sources-toggle" style="background:${srcColor}.05);color:${isDeep?'#C89BFF':'#7CB8FF'}" onclick="document.getElementById('${srcId}').classList.toggle('open')">${tagIcon} 搜索来源（${m.searchSources.length}条）▾</button><div class="search-sources-list" id="${srcId}">`;
-          m.searchSources.forEach(s=>{
+          m.searchSources.forEach((s,sourceIndex)=>{
             const safeUrl=s.url&&/^https?:\/\//.test(s.url)?esc(s.url):'#';
-            searchTag+=`<div class="search-source-item"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a><span class="src-snippet">${s.date?'网页日期（估计）：'+esc(s.date)+'<br>':''}${esc(s.snippet)}</span></div>`;
+            searchTag+=`<div class="search-source-item"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">[${sourceIndex+1}] ${esc(s.title)}</a><span class="src-snippet">${s.date?'网页日期（估计）：'+esc(s.date)+'<br>':''}${esc(s.snippet)}</span></div>`;
           });
           searchTag+='</div></div>';
         }
@@ -5781,7 +5803,7 @@ function showCostStats(){
         h+=`<div class="cache-log-item" style="border-left:3px solid rgba(200,155,255,.35)">${esc(t.title.slice(0,20))} · <b>${fmt$(t.cost)}</b> · ${fmtTok(t.tok)} tok</div>`;
       });
     }
-    h+='<div style="font-size:10px;color:var(--soft);margin-top:8px;text-align:center">按模型单价本地估算 · 以OpenRouter账单为准🍑</div>';
+    h+='<div style="font-size:10px;color:var(--soft);margin-top:8px;text-align:center">优先使用API返回费用，缺失时本地估算 · 以OpenRouter账单为准🍑</div>';
   }
   $('costStatsBody').innerHTML=h;
   $('costStatsOv').classList.add('active');
@@ -5807,24 +5829,25 @@ function showCacheDebug(){
     // Show from newest to oldest
     [...cacheLog].reverse().forEach(e=>{
       const t=fmtTime(e.ts);
-      const model=e.model||'';
+      const model=esc(e.model||'');
+      const detail=(e.plan?'<br>'+esc(e.plan):'')+(e.costEstimated===false?' · API返回费用':' · 费用估算');
       if(e.read>0){
         const pct=e.promptTok?Math.round(e.read/e.promptTok*100):0;
         h+=`<div class="cache-log-item" style="border-left:3px solid #88C999">
-          ${t} · ${model}<br>
+          ${t} · ${model}${detail}<br>
           💾 命中 ${e.read.toLocaleString()} tok · 📝 写入 ${(e.write||0).toLocaleString()} tok · 🎯 ${pct}%<br>
           📦 prompt ${(e.promptTok||0).toLocaleString()} · completion ${(e.compTok||0).toLocaleString()} · $${(e.cost||0).toFixed(4)}
         </div>`;
       }else if(e.write>0){
         h+=`<div class="cache-log-item" style="border-left:3px solid #E8A0BF">
-          ${t} · ${model}<br>
-          📝 首次写入 ${e.write.toLocaleString()} tok（下轮可命中）<br>
+          ${t} · ${model}${detail}<br>
+          📝 写入 ${e.write.toLocaleString()} tok（前缀一致且未过期时可复用）<br>
           📦 prompt ${(e.promptTok||0).toLocaleString()} · $${(e.cost||0).toFixed(4)}
         </div>`;
       }else{
         h+=`<div class="cache-log-item" style="border-left:3px solid #E88B8B">
-          ${t} · ${model}<br>
-          ⚠️ 未命中 ${e.rawKeys?'· 缺失字段: '+e.rawKeys:''}<br>
+          ${t} · ${model}${detail}<br>
+          ${e.reported===false?'ℹ️ 供应商未提供缓存读取统计':'⚠️ 本轮未命中'}<br>
           📦 prompt ${(e.promptTok||0).toLocaleString()} · $${(e.cost||0).toFixed(4)}
         </div>`;
       }
@@ -5843,7 +5866,7 @@ function drawCacheTrend(){
   // 按天汇总：命中率 = 当日命中tok / 当日总输入tok
   const byDay={};
   cacheLog.forEach(e=>{
-    if(!e.promptTok)return;
+    if(!e.promptTok||e.reported===false)return;
     const d=new Date(e.ts);
     const k=d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate(); // v7.0.1: 聚合键带年份，跨年同月日不再合并
     if(!byDay[k])byDay[k]={read:0,prompt:0};

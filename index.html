@@ -441,6 +441,12 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 .search-source-item:last-child{border-bottom:none}
 .search-source-item a{color:#7CB8FF;text-decoration:none;font-weight:600}
 .search-source-item .src-snippet{color:var(--soft);margin-top:2px;display:block}
+/* v7.7.9: readable peach links on dark chat backgrounds, including visited links. */
+.bubble.bot a,.bubble.bot a:visited,.search-source-item a,.search-source-item a:visited{color:#E8A0BF;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.2em;overflow-wrap:anywhere}
+.bubble.bot a strong,.bubble.bot a em,.bubble.bot a code{color:inherit}
+.bubble.bot a:hover,.bubble.bot a:active,.search-source-item a:hover,.search-source-item a:active{color:#FFD1B5}
+.bubble.bot a:focus-visible,.search-source-item a:focus-visible{outline:2px solid #E8A0BF;outline-offset:3px;border-radius:2px}
+
 .arc-form .field{margin-bottom:12px}
 .arc-form-row{display:flex;gap:8px}
 .arc-form-row .field{flex:1}
@@ -2627,7 +2633,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.8'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.9'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;

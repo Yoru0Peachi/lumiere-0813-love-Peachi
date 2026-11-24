@@ -514,9 +514,6 @@ body.smode .smode-badge{display:inline}
 
 [data-move-undo][hidden]{display:none}.archive-read{font-size:12px;color:var(--soft);margin:6px 0;line-height:1.6;overflow-wrap:anywhere}.archive-read summary{cursor:pointer;color:var(--pink)}.archive-read>div{padding:8px;border:1px solid var(--border);border-radius:8px;max-height:240px;overflow:auto}
 #memoryMoveOv .ov-box{max-height:calc(100dvh - 40px);overflow-y:auto}#movePreview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto;font-size:13px;line-height:1.6;padding:10px;border:1px solid var(--border);border-radius:10px;color:var(--gold)}#moveStatus{white-space:pre-wrap;color:var(--pink);font-size:13px;margin:10px 0}
-/* v7.7.13: travel lives above the composer, leaving its width unchanged. */
-.composer-tools{display:flex;justify-content:flex-start;padding:0 0 6px}
-.travel-entry{font:inherit;font-size:11px;color:var(--pink);background:rgba(232,160,191,.06);border:1px solid rgba(232,160,191,.17);border-radius:20px;padding:6px 11px;cursor:pointer;min-height:32px}
 .travel-ov{z-index:95;align-items:flex-end;padding:12px 12px max(12px,env(safe-area-inset-bottom))}
 .travel-sheet{width:100%;max-width:560px;max-height:88vh;max-height:88dvh;display:flex;flex-direction:column;background:#171322;border:1px solid var(--border-warm);border-radius:24px;box-shadow:0 -8px 60px #0006;overflow:hidden}
 .travel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -529,7 +526,7 @@ body.smode .smode-badge{display:inline}
 .travel-actions button,.travel-provider-grid a{font:inherit;font-size:12px;line-height:1.5;border:1px solid var(--border-warm);border-radius:12px;padding:10px 12px;min-height:44px;background:var(--card);color:var(--gold);cursor:pointer;text-align:center;text-decoration:none}
 .travel-primary{font:inherit;border:0!important;background:var(--grad)!important;color:#251523!important;font-weight:600;cursor:pointer;border-radius:14px}
 .travel-sheet button:disabled{opacity:.45;cursor:default}
-.travel-sheet :focus-visible,.travel-entry:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+.travel-sheet :focus-visible,#travelEntry:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
 .travel-note{font-size:11px;line-height:1.8;color:#b8a6ad;margin-top:8px}
 .travel-status{font-size:12px;line-height:1.7;color:var(--pink);padding:12px 0;white-space:pre-line;overflow-wrap:anywhere}
 .travel-map-wrap{margin:0 0 16px}
@@ -855,7 +852,7 @@ body.smode .smode-badge{display:inline}
    <button class="h-btn" onclick="openSB()">☰</button>
    <div class="h-center"><span class="h-dot"></span><span class="h-model" id="hM" onclick="openConvSettings()"></span><span id="vacBadge" style="display:none;font-size:10px;color:var(--soft);margin-left:6px;white-space:nowrap">🏖️ 度假中</span><span id="moodBadge" class="mood-badge" onclick="if(mood.level>=4)showMoodOv()">😤🍑</span><span class="smode-badge">😈 主桃接管中</span></div>
    <button class="h-btn" onclick="openChatSearch()" style="font-size:15px">🔍</button>
-   <button class="h-btn" onclick="openMenu()">⋯</button>
+   <button class="h-btn" id="chatMenuBtn" aria-label="打开菜单" onclick="openMenu()">⋯</button>
   </div>
   <!-- v6.7: 对话内搜索 -->
   <div class="chat-search" id="chatSearch">
@@ -867,7 +864,6 @@ body.smode .smode-badge{display:inline}
   </div>
   <div class="msgs" id="msgs"></div>
   <div class="inp-area">
-   <div class="composer-tools"><button type="button" class="travel-entry" id="travelEntry" aria-haspopup="dialog" aria-controls="travelOv" aria-expanded="false" onclick="openTravelMap()">🗺️ 一起看地图</button></div>
    <div class="att-prev" id="attP"></div>
    <div class="inp-row">
     <button class="att-btn" onclick="document.getElementById('fInp').click()">📎</button>
@@ -886,7 +882,7 @@ body.smode .smode-badge{display:inline}
  </div>
 </div>
 
-<!-- v7.7.13: travel panel; no provider request until a map action is tapped -->
+<!-- v7.7.15: travel panel; no provider request until a map action is tapped -->
 <div class="ov travel-ov" id="travelOv" onclick="if(event.target===this)closeTravelMap()">
  <section class="travel-sheet" role="dialog" aria-modal="true" aria-labelledby="travelTitle" tabindex="-1">
   <div class="travel-head"><div><span class="travel-eyebrow">YORU × PEACHI · 小小旅行</span><h3 id="travelTitle">🗺️ 一起看地图</h3></div><button type="button" id="travelClose" class="travel-close" onclick="closeTravelMap()" aria-label="收起地图">✕</button></div>
@@ -1144,6 +1140,7 @@ body.smode .smode-badge{display:inline}
 <div class="menu-ov" id="menuOv" onclick="closeMenu()">
  <div class="menu-sh" onclick="event.stopPropagation()">
   <h3>🍑 菜单</h3>
+  <button type="button" class="m-item" id="travelEntry" aria-haspopup="dialog" aria-controls="travelOv" aria-expanded="false" onclick="closeMenu();openTravelMap()">🗺️ 一起看地图</button>
   <button class="m-item" onclick="openRename()">✏️ 修改对话标题</button>
   <button class="m-item" id="pinBtn" onclick="togglePinCur()">📌 置顶</button>
   <button class="m-item" onclick="closeMenu();openFolderMove()">📁 移动到文件夹</button>
@@ -2706,7 +2703,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.13'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.15'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -2749,7 +2746,7 @@ function cleanupDrafts(){
 window.addEventListener('pagehide',saveDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDraft()});
 
-// ========== v7.7.13: TRAVEL MAP (opt-in location, editable chat snapshot) ==========
+// ========== v7.7.15: TRAVEL MAP (opt-in location, editable chat snapshot) ==========
 let travelState={convId:null,point:null,busy:false,error:'',draftBlock:''};
 let travelLocationSeq=0,travelLocationTimer=null;
 const TRAVEL_FRESH_MS=5*60*1000;
@@ -2773,7 +2770,7 @@ function openTravelMap(){
 }
 function closeTravelMap(focus=true){
  cancelTravelLocation();clearTravelFrame();$('travelOv').classList.remove('active');$('travelEntry').setAttribute('aria-expanded','false');
- if(focus)$('travelEntry').focus();
+ if(focus)$('chatMenuBtn').focus();
 }
 function clearTravelLocation(){cancelTravelLocation();travelState.point=null;travelState.error='';clearTravelFrame();updateTravelUI()}
 function locateTravelMap(){

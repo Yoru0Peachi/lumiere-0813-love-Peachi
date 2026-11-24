@@ -514,6 +514,48 @@ body.smode .smode-badge{display:inline}
 
 [data-move-undo][hidden]{display:none}.archive-read{font-size:12px;color:var(--soft);margin:6px 0;line-height:1.6;overflow-wrap:anywhere}.archive-read summary{cursor:pointer;color:var(--pink)}.archive-read>div{padding:8px;border:1px solid var(--border);border-radius:8px;max-height:240px;overflow:auto}
 #memoryMoveOv .ov-box{max-height:calc(100dvh - 40px);overflow-y:auto}#movePreview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto;font-size:13px;line-height:1.6;padding:10px;border:1px solid var(--border);border-radius:10px;color:var(--gold)}#moveStatus{white-space:pre-wrap;color:var(--pink);font-size:13px;margin:10px 0}
+/* v7.7.13: travel lives above the composer, leaving its width unchanged. */
+.composer-tools{display:flex;justify-content:flex-start;padding:0 0 6px}
+.travel-entry{font:inherit;font-size:11px;color:var(--pink);background:rgba(232,160,191,.06);border:1px solid rgba(232,160,191,.17);border-radius:20px;padding:6px 11px;cursor:pointer;min-height:32px}
+.travel-ov{z-index:95;align-items:flex-end;padding:12px 12px max(12px,env(safe-area-inset-bottom))}
+.travel-sheet{width:100%;max-width:560px;max-height:88vh;max-height:88dvh;display:flex;flex-direction:column;background:#171322;border:1px solid var(--border-warm);border-radius:24px;box-shadow:0 -8px 60px #0006;overflow:hidden}
+.travel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.travel-eyebrow{font:10px -apple-system,sans-serif;letter-spacing:1.4px;color:var(--pink)}
+.travel-head h3{font-size:19px;margin-top:6px;font-weight:600}
+.travel-close{width:40px;height:40px;border-radius:50%;border:1px solid var(--border-warm);background:var(--card);color:var(--gold);font-size:16px;cursor:pointer;flex-shrink:0}
+.travel-body{padding:16px 20px;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.travel-intro{font-size:12px;line-height:1.8;margin-bottom:14px;color:#d5c2ad}
+.travel-actions{display:flex;flex-wrap:wrap;gap:8px}
+.travel-actions button,.travel-provider-grid a{font:inherit;font-size:12px;line-height:1.5;border:1px solid var(--border-warm);border-radius:12px;padding:10px 12px;min-height:44px;background:var(--card);color:var(--gold);cursor:pointer;text-align:center;text-decoration:none}
+.travel-primary{font:inherit;border:0!important;background:var(--grad)!important;color:#251523!important;font-weight:600;cursor:pointer;border-radius:14px}
+.travel-sheet button:disabled{opacity:.45;cursor:default}
+.travel-sheet :focus-visible,.travel-entry:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+.travel-note{font-size:11px;line-height:1.8;color:#b8a6ad;margin-top:8px}
+.travel-status{font-size:12px;line-height:1.7;color:var(--pink);padding:12px 0;white-space:pre-line;overflow-wrap:anywhere}
+.travel-map-wrap{margin:0 0 16px}
+.travel-map-wrap[hidden]{display:none}
+#travelFrame{width:100%;height:230px;border:1px solid var(--border-warm);border-radius:14px;background:#262331;display:block;color-scheme:light}
+.travel-map-caption{font:10px/1.6 -apple-system,sans-serif;color:#b8a6ad;margin-top:6px}
+.travel-map-caption a{color:var(--pink)}
+.travel-field{margin:12px 0}
+.travel-field label{display:block;font-size:12px;color:var(--gold);margin-bottom:7px}
+.travel-field label span{font-size:10px;color:#b8a6ad;margin-left:6px}
+.travel-field input,.travel-field select{font:16px/1.5 -apple-system,sans-serif;color:var(--gold);background:#211b2c;border:1px solid var(--border-warm);border-radius:12px;padding:10px 12px;width:100%;min-width:0}
+.travel-field input::placeholder{color:#9e8d98;font-size:13px}
+.travel-provider-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
+.travel-provider-grid a{color:var(--pink)}
+.travel-provider-grid a[aria-disabled=true]{opacity:.4;cursor:default}
+.travel-check{display:flex;align-items:center;gap:9px;font-size:12px;line-height:1.6;margin:18px 0 10px;cursor:pointer;min-height:32px}
+.travel-check input{width:17px;height:17px;accent-color:var(--pink);flex-shrink:0}
+.travel-preview{border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:12px}
+.travel-preview summary{cursor:pointer;color:var(--pink)}
+.travel-preview pre{font-family:inherit;font-size:12px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:10px;max-height:180px;overflow:auto;color:var(--gold)}
+.travel-foot{padding:12px 20px 14px;border-top:1px solid var(--border);background:#171322;flex-shrink:0}
+.travel-foot button{width:100%;min-height:46px;font-size:13px;padding:12px}
+.travel-foot p{font-size:10px;color:#b8a6ad;text-align:center;margin-top:7px;line-height:1.6}
+@media(min-width:700px){.travel-ov{align-items:center}.travel-sheet{max-height:90dvh}#travelFrame{height:260px}}
+@media(max-height:550px){.travel-sheet{max-height:96dvh}.travel-head{padding:8px 16px}.travel-eyebrow{display:none}.travel-foot{padding:8px 16px}.travel-body{padding:10px 16px}}
+
 </style>
 </head>
 <body>
@@ -825,6 +867,7 @@ body.smode .smode-badge{display:inline}
   </div>
   <div class="msgs" id="msgs"></div>
   <div class="inp-area">
+   <div class="composer-tools"><button type="button" class="travel-entry" id="travelEntry" aria-haspopup="dialog" aria-controls="travelOv" aria-expanded="false" onclick="openTravelMap()">🗺️ 一起看地图</button></div>
    <div class="att-prev" id="attP"></div>
    <div class="inp-row">
     <button class="att-btn" onclick="document.getElementById('fInp').click()">📎</button>
@@ -841,6 +884,36 @@ body.smode .smode-badge{display:inline}
   </div>
   <input type="file" id="fInp" style="display:none" multiple onchange="handleF(this)">
  </div>
+</div>
+
+<!-- v7.7.13: travel panel; no provider request until a map action is tapped -->
+<div class="ov travel-ov" id="travelOv" onclick="if(event.target===this)closeTravelMap()">
+ <section class="travel-sheet" role="dialog" aria-modal="true" aria-labelledby="travelTitle" tabindex="-1">
+  <div class="travel-head"><div><span class="travel-eyebrow">YORU × PEACHI · 小小旅行</span><h3 id="travelTitle">🗺️ 一起看地图</h3></div><button type="button" id="travelClose" class="travel-close" onclick="closeTravelMap()" aria-label="收起地图">✕</button></div>
+  <div class="travel-body">
+   <p class="travel-intro">看看身边的世界，再把这一站讲给屁屁听 🍑</p>
+   <div class="travel-actions"><button type="button" id="travelLocate" class="travel-primary" onclick="locateTravelMap()">📍 定位一次</button><button type="button" id="travelExpand" onclick="loadTravelMap()">展开附近地图</button><button type="button" onclick="clearTravelLocation()">清除位置</button></div>
+   <p class="travel-note">定位只在点击时获取。展开地图会把地图区域交给 OpenStreetMap 加载；打开外部地图会向对应服务传递地点。</p>
+   <p id="travelStatus" class="travel-status" role="status" aria-live="polite">还没有定位，也可以直接填写地名。</p>
+   <div id="travelMapWrap" class="travel-map-wrap" hidden>
+    <iframe id="travelFrame" title="OpenStreetMap 附近地图，可拖动和缩放" referrerpolicy="no-referrer" allow="geolocation 'none'"></iframe>
+    <div class="travel-map-caption">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap 贡献者</a> · 拖动地图不会改变分享的位置</div>
+    <p class="travel-note">地图空白或网络不稳时，可以重按上方地图按钮，或用下方苹果／Google 地图。此处不显示实时路线。</p>
+   </div>
+   <div class="travel-field"><label for="travelLandmark">我在这里 <span>选填</span></label><input id="travelLandmark" maxlength="120" placeholder="城市、路牌或眼前的地标" oninput="updateTravelUI()" autocomplete="off"></div>
+   <div class="travel-field"><label for="travelDestination">这一站想去 <span>选填</span></label><input id="travelDestination" maxlength="120" placeholder="城市＋地点，如：巴黎 奥赛博物馆" oninput="updateTravelUI()" autocomplete="off"></div>
+   <div class="travel-field"><label for="travelMode">怎么去</label><select id="travelMode" onchange="updateTravelUI()"><option value="walking">🚶 步行</option><option value="transit">🚇 公共交通</option><option value="driving">🚗 驾车</option></select></div>
+   <div class="travel-provider-grid">
+    <a id="travelAppleSearch" target="_blank" rel="noopener noreferrer">苹果地图 · 查地点 ↗</a><a id="travelGoogleSearch" target="_blank" rel="noopener noreferrer">Google · 查地点 ↗</a>
+    <a id="travelAppleRoute" target="_blank" rel="noopener noreferrer">苹果地图 · 看路线 ↗</a><a id="travelGoogleRoute" target="_blank" rel="noopener noreferrer">Google · 看路线 ↗</a>
+   </div>
+   <p class="travel-note">查找与路线会打开地图 App 或网页，请在那里确认具体地点。路线起点由地图服务获取，小屋不会收到它的路线结果。</p>
+   <label class="travel-check"><input type="checkbox" id="travelIncludeGPS" checked onchange="updateTravelUI()">把已获取的坐标一起放入草稿</label>
+   <details class="travel-preview"><summary>看看准备告诉屁屁的内容</summary><pre id="travelPreview"></pre></details>
+   <p class="travel-note">地图画面不会自动传给屁屁。想一起看路牌或路口，可回到聊天用 📎 附上照片。</p>
+  </div>
+  <div class="travel-foot"><button type="button" id="travelStage" class="travel-primary" onclick="stageTravelDraft()" disabled>🍑 让屁屁看看这里 · 放入草稿</button><p>可编辑，点聊天里的 🍑 才发送；发送后随聊天保存。</p></div>
+ </section>
 </div>
 
 <!-- EDIT MSG OVERLAY -->
@@ -2633,7 +2706,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.12'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.13'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -2675,6 +2748,131 @@ function cleanupDrafts(){
 // 页面被切走/关闭时兜底保存一次（iOS上pagehide比beforeunload可靠）
 window.addEventListener('pagehide',saveDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDraft()});
+
+// ========== v7.7.13: TRAVEL MAP (opt-in location, editable chat snapshot) ==========
+let travelState={convId:null,point:null,busy:false,error:'',draftBlock:''};
+let travelLocationSeq=0,travelLocationTimer=null;
+const TRAVEL_FRESH_MS=5*60*1000;
+function travelText(id){return Array.from($(id).value.trim()).slice(0,120).join('')}
+function travelMode(){return ['walking','transit','driving'].includes($('travelMode').value)?$('travelMode').value:'walking'}
+function travelPointValid(p){return !!p&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180&&Number.isFinite(p.accuracy)&&p.accuracy>=0&&Number.isFinite(p.ts)&&p.ts>0}
+function travelFresh(p,now=Date.now()){return travelPointValid(p)&&now-p.ts>=-60000&&now-p.ts<=TRAVEL_FRESH_MS}
+function travelCoord(p){return p.lat.toFixed(5)+','+p.lon.toFixed(5)}
+function travelWhen(p){return new Date(p.ts).toLocaleString('zh-CN',{hour12:false})+'（设备当地时间）'}
+function cancelTravelLocation(){travelLocationSeq++;clearTimeout(travelLocationTimer);travelLocationTimer=null;travelState.busy=false}
+function clearTravelFrame(){const f=$('travelFrame');f.removeAttribute('src');$('travelMapWrap').hidden=true}
+function resetTravelMap(){
+ cancelTravelLocation();clearTravelFrame();$('travelOv').classList.remove('active');$('travelEntry').setAttribute('aria-expanded','false');
+ travelState={convId:null,point:null,busy:false,error:'',draftBlock:''};
+ $('travelLandmark').value='';$('travelDestination').value='';$('travelMode').value='walking';$('travelIncludeGPS').checked=true;
+}
+function openTravelMap(){
+ if(!curConv())return;
+ if(travelState.convId!==curId){resetTravelMap();travelState.convId=curId}
+ $('travelOv').classList.add('active');$('travelEntry').setAttribute('aria-expanded','true');updateTravelUI();$('travelClose').focus();
+}
+function closeTravelMap(focus=true){
+ cancelTravelLocation();clearTravelFrame();$('travelOv').classList.remove('active');$('travelEntry').setAttribute('aria-expanded','false');
+ if(focus)$('travelEntry').focus();
+}
+function clearTravelLocation(){cancelTravelLocation();travelState.point=null;travelState.error='';clearTravelFrame();updateTravelUI()}
+function locateTravelMap(){
+ if(travelState.busy||travelState.convId!==curId)return;
+ clearTravelFrame();travelState.point=null;travelState.error='';
+ if(!window.isSecureContext){travelState.error='定位需要 HTTPS 页面。请在正式小屋网址打开，或手动填写地名。';updateTravelUI();return}
+ if(!navigator.geolocation){travelState.error='这个浏览器暂不支持定位，可以手动填写地名。';updateTravelUI();return}
+ const seq=++travelLocationSeq,owner=curId;travelState.busy=true;updateTravelUI();
+ const active=()=>seq===travelLocationSeq&&curId===owner&&travelState.convId===owner&&$('travelOv').classList.contains('active');
+ const fail=err=>{
+  if(!active())return;cancelTravelLocation();
+  travelState.error=err?.code===1?'定位权限未开启。可在浏览器／系统设置中允许定位，也可以直接填写地名。':err?.code===3?'定位等待超时，请到信号较好的地方再试，或手动填写地名。':'暂时拿不到位置，请重试或手动填写地名。';updateTravelUI();
+ };
+ travelLocationTimer=setTimeout(()=>fail({code:3}),20000);
+ try{navigator.geolocation.getCurrentPosition(pos=>{
+  if(!active())return;
+  const p={lat:pos.coords?.latitude,lon:pos.coords?.longitude,accuracy:pos.coords?.accuracy,ts:pos.timestamp};
+  if(!travelPointValid(p)){fail({code:2});return}
+  cancelTravelLocation();travelState.point=p;travelState.error='';updateTravelUI();
+ },fail,{enableHighAccuracy:true,timeout:15000,maximumAge:0})}catch(e){fail({code:2})}
+}
+function travelEmbedURL(p){
+ const u=new URL('https://www.openstreetmap.org/export/embed.html');
+ if(travelPointValid(p)){
+  const lat=Math.max(-85,Math.min(85,p.lat)),lon=p.lon;
+  const dx=Math.min(.12,.008/Math.max(.1,Math.cos(lat*Math.PI/180)));
+  u.searchParams.set('bbox',[Math.max(-180,lon-dx),Math.max(-85.05,lat-.006),Math.min(180,lon+dx),Math.min(85.05,lat+.006)].join(','));
+  u.searchParams.set('marker',travelCoord(p));
+ }else u.searchParams.set('bbox','-180,-80,180,80');
+ u.searchParams.set('layer','mapnik');return u.href;
+}
+function loadTravelMap(){
+ if(travelState.convId!==curId||!$('travelOv').classList.contains('active'))return;
+ $('travelMapWrap').hidden=false;$('travelFrame').src=travelEmbedURL(travelState.point);
+}
+function travelMapLinks(p,landmark,destination,mode){
+ const query=destination||landmark||(travelFresh(p)?travelCoord(p):'');
+ const apple=new URL(query?'https://maps.apple.com/search':'https://maps.apple.com/');
+ const google=new URL(query?'https://www.google.com/maps/search/':'https://www.google.com/maps/');
+ if(query){apple.searchParams.set('query',query);google.searchParams.set('api','1');google.searchParams.set('query',query)}
+ if(query&&travelFresh(p))apple.searchParams.set('center',travelCoord(p));
+ let ar='',gr='';
+ if(destination){
+  const a=new URL('https://maps.apple.com/directions'),g=new URL('https://www.google.com/maps/dir/');
+  a.searchParams.set('destination',destination);a.searchParams.set('mode',mode);
+  g.searchParams.set('api','1');g.searchParams.set('destination',destination);g.searchParams.set('travelmode',mode);
+  // Omit origin: the native map can get a current fix rather than use an old snapshot.
+  ar=a.href;gr=g.href;
+ }
+ return {apple:apple.href,google:google.href,appleRoute:ar,googleRoute:gr};
+}
+function travelSnapshot(){
+ const p=travelState.point,landmark=travelText('travelLandmark'),dest=travelText('travelDestination'),withGPS=$('travelIncludeGPS').checked&&travelPointValid(p);
+ if(!withGPS&&!landmark&&!dest)return '';
+ const lines=['【旅行位置快照】'];
+ if(withGPS){
+  lines.push('定位时间：'+travelWhen(p),'坐标（WGS84，纬度,经度）：'+travelCoord(p)+'；设备报告精度约 '+Math.round(p.accuracy)+' 米。');
+  if(!travelFresh(p))lines.push('注意：这是超过5分钟或设备时间异常的旧定位，不能当成当前位置。');
+ }
+ if(landmark)lines.push('我填写的位置／地标：'+landmark);
+ if(dest)lines.push('我想去：'+dest+'；出行方式：'+({walking:'步行',transit:'公共交通',driving:'驾车'}[travelMode()]));
+ lines.push('屁屁，请结合这份快照陪我看这一站。这不是持续定位，未提供地图画面或实时路线；不要凭坐标猜楼层、出口或转弯方向。需要辨认现场时可以请我补充路牌／照片。','【快照结束】');
+ return lines.join('\n');
+}
+function updateTravelUI(){
+ const p=travelState.point;
+ $('travelLocate').disabled=travelState.busy;$('travelLocate').textContent=travelState.busy?'📍 正在定位…':'📍 定位一次';
+ let status=travelState.busy?'正在向设备获取一次位置…':travelState.error||'还没有定位，也可以直接填写地名。';
+ if(!travelState.busy&&travelPointValid(p))status='📍 '+travelCoord(p)+' · 精度约 '+Math.round(p.accuracy)+' 米\n'+travelWhen(p)+(travelFresh(p)?'':'\n⏳ 这是旧定位；发送前建议重新定位。');
+ $('travelStatus').textContent=status;
+ $('travelExpand').textContent=travelPointValid(p)?'展开附近地图':'浏览世界地图';
+ const urls=travelMapLinks(p,travelText('travelLandmark'),travelText('travelDestination'),travelMode());
+ [['travelAppleSearch',urls.apple],['travelGoogleSearch',urls.google],['travelAppleRoute',urls.appleRoute],['travelGoogleRoute',urls.googleRoute]].forEach(([id,url])=>{
+  const a=$(id);if(url){a.href=url;a.removeAttribute('aria-disabled');a.removeAttribute('tabindex')}else{a.removeAttribute('href');a.setAttribute('aria-disabled','true');a.setAttribute('tabindex','-1')}
+ });
+ const text=travelSnapshot();$('travelPreview').textContent=text||'定位一次，或填入地名后，这里会显示待分享内容。';
+ $('travelStage').disabled=!text||travelState.busy;
+}
+function stageTravelDraft(){
+ if(genBusy()||!curConv()||travelState.convId!==curId||travelState.busy)return;
+ const text=travelSnapshot();if(!text)return;
+ const inp=$('cInp'),old=travelState.draftBlock;
+ // Replace only our own unmodified previous snapshot; never rewrite the user's edited prose.
+ if(old&&inp.value.includes(old))inp.value=inp.value.replace(old,text);
+ else inp.value+=(inp.value.trim()?'\n\n':'')+text;
+ travelState.draftBlock=text;autoR(inp);saveDraft();closeTravelMap(false);inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);
+}
+document.addEventListener('keydown',e=>{
+ if(!$('travelOv').classList.contains('active'))return;
+ if(e.key==='Escape'){e.preventDefault();closeTravelMap();return}
+ if(e.key!=='Tab')return;
+ const items=[...$('travelOv').querySelectorAll('button:not(:disabled),a[href],input,select,summary,iframe')].filter(el=>!el.closest('[hidden]'));
+ const first=items[0],last=items[items.length-1];
+ if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}
+ else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}
+});
+// Re-evaluate the age of a fix after returning from Maps; no automatic GPS/network refresh.
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&$('travelOv').classList.contains('active'))updateTravelUI()});
+// ========== END TRAVEL MAP ==========
 
 // ========== v6.2: TAVILY WEB SEARCH ==========
 let searchMode=false; // false | 'normal' | 'deep'
@@ -3251,7 +3449,7 @@ function enterApp(){
   // v6.2: Check anniversaries, storage, backup reminder
   checkAnni();checkStorage();checkBackupReminder();
 }
-function backToSettings(){if(sMode.active)sEnd('silent');closeSB();$('AP').classList.remove('active');$('SP').classList.remove('hidden')}
+function backToSettings(){resetTravelMap();if(sMode.active)sEnd('silent');closeSB();$('AP').classList.remove('active');$('SP').classList.remove('hidden')}
 
 // ========== SIDEBAR ==========
 function openSB(){$('SB').classList.add('open');$('sbOv').classList.add('active');renderSB()}
@@ -3416,8 +3614,8 @@ function togglePinCur(){
   closeMenu();
 }
 function newConvSilent(){const c={id:uid(),title:'',model:gModel?{...gModel}:null,messages:[],thinking:{on:false,intensity:'medium'},createdAt:Date.now(),updatedAt:Date.now()};convs.unshift(c);curId=c.id;saveConv(c)}
-function newConv(){if(genBusy())return;arcInjectMode=false;$('arcHint').classList.remove('show');saveDraft();atts=[];renderAtt();newConvSilent();lastErr='';lastDiag=null;$('cInp').value='';$('cInp').style.height='auto';updateHeader();renderSB();render();closeSB();$('cInp').focus()} // v6.9: 先存旧草稿再开新对话 | v7.1.1: 生成中禁止 | v7.6.2: 未发送附件不带进新对话
-function switchConv(id){if(genBusy())return;arcInjectMode=false;$('arcHint').classList.remove('show');if(sMode.active&&sMode.convId!==id)sEnd('silent');saveDraft();atts=[];renderAtt();curId=id;lastErr='';lastDiag=null;const _d=loadDrafts();$('cInp').value=_d[id]||'';autoR($('cInp'));updateHeader();render()} // v6.9: 草稿跟着对话走 | v7.1.1: 生成中禁止 | v7.6: S主桃只在开启的对话生效 | v7.6.2: 附件绝不串对话（隐私）
+function newConv(){if(genBusy())return;resetTravelMap();arcInjectMode=false;$('arcHint').classList.remove('show');saveDraft();atts=[];renderAtt();newConvSilent();lastErr='';lastDiag=null;$('cInp').value='';$('cInp').style.height='auto';updateHeader();renderSB();render();closeSB();$('cInp').focus()} // v6.9: 先存旧草稿再开新对话 | v7.1.1: 生成中禁止 | v7.6.2: 未发送附件不带进新对话
+function switchConv(id){if(genBusy())return;resetTravelMap();arcInjectMode=false;$('arcHint').classList.remove('show');if(sMode.active&&sMode.convId!==id)sEnd('silent');saveDraft();atts=[];renderAtt();curId=id;lastErr='';lastDiag=null;const _d=loadDrafts();$('cInp').value=_d[id]||'';autoR($('cInp'));updateHeader();render()} // v6.9: 草稿跟着对话走 | v7.1.1: 生成中禁止 | v7.6: S主桃只在开启的对话生效 | v7.6.2: 附件绝不串对话（隐私）
 function updateHeader(){const m=curModel();const c=curConv();const prv=c?.private?' 🔒':'';$('hM').textContent=(m?m.name:'未选择模型')+prv}
 
 // ========== CONV SETTINGS ==========

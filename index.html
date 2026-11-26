@@ -430,6 +430,10 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 .nav-overview{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(232,160,191,.2);font-size:12px;color:var(--warm);line-height:1.65;margin-bottom:8px}
 .nav-overview[hidden]{display:none}
 .nav-overview-lbl{font-size:11px;color:var(--pink);font-weight:600;margin-bottom:3px}
+.nav-plans{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:210px;overflow-y:auto;padding-right:2px}
+.nav-plans[hidden]{display:none}
+.nav-plan-btn{text-align:left;padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--soft);font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit}
+.nav-plan-btn.active{border-color:rgba(232,160,191,.55);background:rgba(232,160,191,.13);color:var(--warm);font-weight:600}
 .nav-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .nav-controls button{flex:1;min-width:96px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit}
 .nav-controls button.nav-live{background:rgba(120,220,160,.16);border-color:rgba(120,220,160,.45);color:#a6f0c6}
@@ -944,6 +948,7 @@ body.smode .smode-badge{display:inline}
    <div class="travel-field"><label for="travelLandmark">我在这里 <span>选填</span></label><input id="travelLandmark" maxlength="120" placeholder="城市、路牌或眼前的地标" oninput="updateTravelUI()" autocomplete="off"></div>
    <div class="travel-field"><label for="travelDestination">这一站想去 <span>选填</span></label><input id="travelDestination" maxlength="120" placeholder="城市＋地点，如：巴黎 奥赛博物馆" oninput="updateTravelUI()" autocomplete="off"></div>
    <div class="travel-field"><label for="travelMode">怎么去</label><select id="travelMode" onchange="updateTravelUI()"><option value="walking">🚶 步行</option><option value="transit">🚇 公共交通</option><option value="driving">🚗 驾车</option></select></div>
+   <div class="travel-field" id="navPreferWrap"><label for="navPreferLine">想坐的线路／车次 <span>选填</span></label><input id="navPreferLine" maxlength="80" placeholder="如：96路 813路、地铁7号线（留空自动推荐）" autocomplete="off"></div>
    <div class="travel-actions" style="margin-top:8px">
     <button type="button" id="navCalcBtn" class="travel-primary" onclick="calcNavRoute()">🧭 计算路线并开启导航</button>
    </div>
@@ -955,6 +960,7 @@ body.smode .smode-badge{display:inline}
     </div>
     <div class="nav-meta" id="navRouteMeta"></div>
     <div class="nav-overview" id="navOverviewBox" hidden><div class="nav-overview-lbl">🗺️ 大致路线总览</div><div id="navOverviewText"></div></div>
+    <div class="nav-plans" id="navPlansBox" hidden></div>
     <div id="navOffRouteBar" class="nav-offroute" hidden>
      <span id="navOffRouteText">⚠️ 好像偏离路线了</span>
      <button type="button" class="rd-qbtn" onclick="recalcNavRoute()">🔄 重新规划</button>
@@ -2868,7 +2874,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.8.5'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.8.7'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -7833,6 +7839,42 @@ function buildSimpleOverview(mode,steps,destName){
   if(roads.length)return [`${icon} 经 ${roads.join(' → ')} → ${destName||'目的地'}`];
   return [`${icon} 直达 ${destName||'目的地'}（共${steps.length}步）`];
 }
+function scorePlanPreference(plan,prefText){
+  const tokens=String(prefText||'').toLowerCase().split(/[\s,，、/+＋]+/).map(s=>s.trim()).filter(Boolean);
+  if(!tokens.length||!plan)return 0;
+  const hay=((plan.overview||[]).join(' ')+' '+(plan.steps||[]).map(s=>s.instruction||'').join(' ')).toLowerCase();
+  let score=0;
+  for(const tk of tokens){
+    if(hay.includes(tk))score+=10;
+    else if(/^\d+$/.test(tk)&&(hay.includes(tk+'路')||hay.includes(tk+'号线')))score+=8;
+  }
+  return score;
+}
+function pickPreferredPlanIndex(plans,prefText){
+  if(!Array.isArray(plans)||!plans.length)return 0;
+  let bestIdx=0,bestScore=0;
+  plans.forEach((p,i)=>{
+    const sc=scorePlanPreference(p,prefText);
+    if(sc>bestScore){bestScore=sc;bestIdx=i}
+  });
+  return bestIdx;
+}
+function selectNavPlan(planIdx){
+  if(!navState?.active||!Array.isArray(navState.altPlans)||!navState.altPlans[planIdx])return;
+  const pl=navState.altPlans[planIdx];
+  navState.selectedPlanIdx=planIdx;
+  navState.steps=pl.steps;
+  navState.overview=pl.overview;
+  navState.totalDistanceM=pl.dist;
+  navState.totalDurationS=pl.dur;
+  navState.currentStepIdx=0;
+  navState.offRoute=false;
+  navState.updatedAt=Date.now();
+  saveNavState();
+  updateNavUI();
+  updateTravelUI();
+  rdToast(`🔀 已切换到方案 ${planIdx+1}🍑`);
+}
 function pointToSegmentMeters(pLat,pLon,aLat,aLon,bLat,bLon){
   const cosLat=Math.cos(pLat*Math.PI/180);
   const mx=111320*cosLat,my=110540;
@@ -8010,53 +8052,92 @@ async function routeWithBaidu(origin,destName,mode,ak){
       return steps;
     };
     if(mode==='transit'){
-      const tr=new BMap.TransitRoute(geoInfo.city||'全国',{
-        onSearchComplete:res=>{
-          try{
-            if(tr.getStatus()===window.BMAP_STATUS_SUCCESS&&res&&res.getNumPlans()>0){
-              const plan=res.getPlan(0);
-              const steps=[];
-              const totalDist=typeof plan.getDistance==='function'?Number(plan.getDistance(false))||0:0;
-              const totalDur=typeof plan.getDuration==='function'?Number(plan.getDuration(false))||0:0;
-              // 交替读取步行段与公交/地铁段
-              const nRoutes=plan.getNumRoutes?plan.getNumRoutes():0;
-              const nLines=plan.getNumLines?plan.getNumLines():0;
-              for(let i=0;i<Math.max(nRoutes,nLines);i++){
-                if(i<nRoutes){
-                  const wr=plan.getRoute(i);
-                  const d=typeof wr.getDistance==='function'?Number(wr.getDistance(false))||0:0;
-                  const path=wr.getPath?wr.getPath():[];
-                  const sp=path.length?path[0]:null;
-                  const ep=path.length?path[path.length-1]:null;
-                  const wsp=sp?bd09ToWgs84(sp.lat,sp.lng):null;
-                  const wep=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
-                  const txt=bmapStripHtml(wr.getDescription?wr.getDescription(false):'')||(d>0?`步行约${navFmtDist(d)}`:'步行衔接');
-                  if(d>0||txt)steps.push({idx:steps.length,instruction:txt,road:'',distanceM:Math.round(d),durationS:Math.round(d/1.2),startLat:wsp?.lat,startLon:wsp?.lon,lat:wep.lat,lon:wep.lon,landmarks:[],_bdWalkStart:sp,_bdWalkEnd:ep,_isTransitWalk:true});
-                }
-                if(i<nLines){
-                  const ln=plan.getLine(i);
-                  const onStop=ln.getGetOnStop?ln.getGetOnStop():null;
-                  const offStop=ln.getGetOffStop?ln.getGetOffStop():null;
-                  const stopCount=ln.getNumViaStops?ln.getNumViaStops():0;
-                  const title=ln.title||'公交/地铁';
-                  const d=typeof ln.getDistance==='function'?Number(ln.getDistance(false))||0:0;
-                  const ep=offStop?.point||null;
-                  const wp=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
-                  const txt=`乘坐 ${title}`+(onStop?.title?`（${onStop.title}上车`:'')+(offStop?.title?` → ${offStop.title}下车`:'')+(stopCount?`，共${stopCount}站`:'')+(onStop?.title||offStop?.title?'）':'');
-                  steps.push({idx:steps.length,kind:'transit',instruction:txt,road:title,distanceM:Math.round(d),durationS:Math.round(totalDur/Math.max(1,nLines)),lat:wp.lat,lon:wp.lon,landmarks:[onStop?.title,offStop?.title].filter(Boolean)});
-                }
-              }
-              if(!steps.length){
-                const desc=bmapStripHtml(plan.getDescription?plan.getDescription(false):'');
-                if(desc)steps.push({idx:0,instruction:desc,road:'',distanceM:Math.round(totalDist),durationS:Math.round(totalDur),lat:wDest.lat,lon:wDest.lon,landmarks:[]});
-              }
-              if(steps.length)return resolve({steps,dist:Math.round(totalDist),dur:Math.round(totalDur)});
-            }
-          }catch(e){}
-          reject(Error('百度公交/地铁路线规划失败，可切换步行或稍后重试'));
+      const parsePlanObj=(plan)=>{
+        const steps=[];
+        const totalDist=typeof plan.getDistance==='function'?Number(plan.getDistance(false))||0:0;
+        const totalDur=typeof plan.getDuration==='function'?Number(plan.getDuration(false))||0:0;
+        const nRoutes=plan.getNumRoutes?plan.getNumRoutes():0;
+        const nLines=plan.getNumLines?plan.getNumLines():0;
+        for(let i=0;i<Math.max(nRoutes,nLines);i++){
+          if(i<nRoutes){
+            const wr=plan.getRoute(i);
+            const d=typeof wr.getDistance==='function'?Number(wr.getDistance(false))||0:0;
+            const path=wr.getPath?wr.getPath():[];
+            const sp=path.length?path[0]:null;
+            const ep=path.length?path[path.length-1]:null;
+            const wsp=sp?bd09ToWgs84(sp.lat,sp.lng):null;
+            const wep=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
+            const txt=bmapStripHtml(wr.getDescription?wr.getDescription(false):'')||(d>0?`步行约${navFmtDist(d)}`:'步行衔接');
+            if(d>0||txt)steps.push({idx:steps.length,instruction:txt,road:'',distanceM:Math.round(d),durationS:Math.round(d/1.2),startLat:wsp?.lat,startLon:wsp?.lon,lat:wep.lat,lon:wep.lon,landmarks:[],_bdWalkStart:sp,_bdWalkEnd:ep,_isTransitWalk:true});
+          }
+          if(i<nLines){
+            const ln=plan.getLine(i);
+            const onStop=ln.getGetOnStop?ln.getGetOnStop():null;
+            const offStop=ln.getGetOffStop?ln.getGetOffStop():null;
+            const stopCount=ln.getNumViaStops?ln.getNumViaStops():0;
+            const title=ln.title||'公交/地铁';
+            const d=typeof ln.getDistance==='function'?Number(ln.getDistance(false))||0:0;
+            const ep=offStop?.point||null;
+            const wp=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
+            const txt=`乘坐 ${title}`+(onStop?.title?`（${onStop.title}上车`:'')+(offStop?.title?` → ${offStop.title}下车`:'')+(stopCount?`，共${stopCount}站`:'')+(onStop?.title||offStop?.title?'）':'');
+            steps.push({idx:steps.length,kind:'transit',instruction:txt,road:title,distanceM:Math.round(d),durationS:Math.round(totalDur/Math.max(1,nLines)),lat:wp.lat,lon:wp.lon,landmarks:[onStop?.title,offStop?.title].filter(Boolean)});
+          }
         }
+        if(!steps.length){
+          const desc=bmapStripHtml(plan.getDescription?plan.getDescription(false):'');
+          if(desc)steps.push({idx:0,instruction:desc,road:'',distanceM:Math.round(totalDist),durationS:Math.round(totalDur),lat:wDest.lat,lon:wDest.lon,landmarks:[]});
+        }
+        return {steps,dist:Math.round(totalDist),dur:Math.round(totalDur),overview:buildSimpleOverview('transit',steps,destPoi.name)};
+      };
+      // v7.8.7: 并行查询 4 种策略（时间短/少换乘/少步行/不坐地铁纯公交）并按路线去重，尽量拿全所有方案
+      const policies=[
+        window.BMAP_TRANSIT_POLICY_LEAST_TIME,
+        window.BMAP_TRANSIT_POLICY_LEAST_TRANSFER,
+        window.BMAP_TRANSIT_POLICY_LEAST_WALKING,
+        window.BMAP_TRANSIT_POLICY_AVOID_SUBWAYS
+      ].filter(v=>v!==undefined);
+      const runOnePolicy=(policy)=>new Promise(resPol=>{
+        let done=false;
+        const t=setTimeout(()=>{if(!done){done=true;resPol([])}},8000);
+        try{
+          const tr=new BMap.TransitRoute(geoInfo.city||'全国',{
+            policy,
+            onSearchComplete:res=>{
+              if(done)return;done=true;clearTimeout(t);
+              const arr=[];
+              try{
+                if(tr.getStatus()===window.BMAP_STATUS_SUCCESS&&res&&res.getNumPlans()>0){
+                  const n=res.getNumPlans();
+                  for(let p=0;p<n;p++){
+                    const po=parsePlanObj(res.getPlan(p));
+                    if(po.steps.length)arr.push(po);
+                  }
+                }
+              }catch(e){}
+              resPol(arr);
+            }
+          });
+          tr.search(startPt,endPt);
+        }catch(e){if(!done){done=true;clearTimeout(t);resPol([])}}
       });
-      tr.search(startPt,endPt);
+      Promise.all((policies.length?policies:[undefined]).map(runOnePolicy)).then(groups=>{
+        const plans=[],seen=new Set();
+        for(const grp of groups){
+          for(const po of grp){
+            const sig=(po.overview||[]).map(x=>x.replace(/步行约[\d.]+(?:米|公里)/g,'步行')).join('|');
+            if(sig&&seen.has(sig))continue;
+            if(sig)seen.add(sig);
+            plans.push(po);
+          }
+        }
+        if(plans.length){
+          const prefRaw=travelText('navPreferLine');
+          const pickedIdx=pickPreferredPlanIndex(plans,prefRaw);
+          const chosen=plans[pickedIdx];
+          return resolve({steps:chosen.steps,dist:chosen.dist,dur:chosen.dur,plans,selectedPlanIdx:pickedIdx,prefRaw});
+        }
+        reject(Error('百度公交/地铁路线规划失败，可切换步行或稍后重试'));
+      });
     }else if(mode==='driving'){
       const dr=new BMap.DrivingRoute(geoInfo.city||'全国',{
         onSearchComplete:res=>{
@@ -8129,8 +8210,20 @@ async function routeWithBaidu(origin,destName,mode,ak){
   routeRes.steps=mergeTinyWalkSteps(routeRes.steps);
   ensureCompassOnSteps(routeRes.steps,origin);
   if(routeRes.steps[0]&&geoInfo.pois.length)routeRes.steps[0].landmarks=[...new Set([...(routeRes.steps[0].landmarks||[]),...geoInfo.pois])].slice(0,3);
+  const altPlans=(routeRes.plans||[]).map((pl,pi)=>({
+    idx:pi,
+    dist:pl.dist,
+    dur:pl.dur,
+    overview:pl.overview,
+    steps:pi===(routeRes.selectedPlanIdx||0)?routeRes.steps:ensureCompassOnSteps(mergeTinyWalkSteps(pl.steps.map(s=>{const c={...s};delete c._bdWalkStart;delete c._bdWalkEnd;delete c._isTransitWalk;return c})),origin)
+  }));
+  let prefNote='';
+  if(routeRes.prefRaw){
+    const hit=scorePlanPreference(altPlans[routeRes.selectedPlanIdx||0],routeRes.prefRaw)>0;
+    prefNote=hit?`已按你的偏好「${routeRes.prefRaw}」自动选中对应方案！`:`百度返回的备选方案中暂未找到「${routeRes.prefRaw}」，已先选中推荐方案，你也可以在下方切换其他方案。`;
+  }
   return {
-    v:1,active:true,provider:'baidu',mode,note:'',overview:baiduOverview,
+    v:1,active:true,provider:'baidu',mode,note:prefNote,overview:baiduOverview,altPlans,selectedPlanIdx:routeRes.selectedPlanIdx||0,
     origin:{name:geoInfo.address||origin.name||'当前位置',lat:origin.lat,lon:origin.lon},
     destination:{name:destPoi.name,lat:wDest.lat,lon:wDest.lon},
     totalDistanceM:routeRes.dist,
@@ -8516,6 +8609,7 @@ function clearAllLocationTraces(skipConfirm=false){
   travelState.point=null;travelState.error='';travelState.draftBlock='';
   if($('travelLandmark'))$('travelLandmark').value='';
   if($('travelDestination'))$('travelDestination').value='';
+  if($('navPreferLine'))$('navPreferLine').value='';
   updateNavBadge();updateNavUI();updateTravelUI();
   rdToast('🧹 全部位置与导航痕迹已清空🍑');
 }
@@ -8559,6 +8653,19 @@ function updateNavUI(){
   if(ovBox&&ovTxt){
     const ovArr=(Array.isArray(navState.overview)&&navState.overview.length)?navState.overview:buildSimpleOverview(navState.mode,steps,navState.destination?.name);
     if(ovArr.length){ovBox.hidden=false;ovTxt.textContent=ovArr.join(' → ')}else ovBox.hidden=true;
+  }
+  const plBox=$('navPlansBox');
+  if(plBox){
+    const alts=Array.isArray(navState.altPlans)?navState.altPlans:[];
+    if(alts.length>1){
+      plBox.hidden=false;
+      const sel=navState.selectedPlanIdx||0;
+      plBox.innerHTML='<div class="nav-overview-lbl">🔀 切换路线方案（共 '+alts.length+' 套，点一下即切）</div>'+alts.map((pl,i)=>{
+        const active=i===sel?' active':'';
+        const line=(pl.overview||[]).join(' → ');
+        return `<button type="button" class="nav-plan-btn${active}" onclick="selectNavPlan(${i})">${i===sel?'✓ ':''}方案${i+1}（${navFmtDur(pl.dur)} · ${navFmtDist(pl.dist)}）：${esc(line)}</button>`;
+      }).join('');
+    }else plBox.hidden=true;
   }
 
   const offBar=$('navOffRouteBar');

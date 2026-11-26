@@ -426,6 +426,10 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 .nav-step-lm{font-size:12px;color:var(--gold);margin-top:6px;line-height:1.5}
 .nav-step-next{font-size:12px;color:var(--soft);margin-top:6px;padding-top:6px;border-top:1px dashed rgba(255,255,255,.1)}
 .nav-offroute{padding:8px 10px;border-radius:10px;background:rgba(255,110,110,.15);border:1px solid rgba(255,110,110,.35);color:#ffb3b3;font-size:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.nav-offroute[hidden]{display:none}
+.nav-overview{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(232,160,191,.2);font-size:12px;color:var(--warm);line-height:1.65;margin-bottom:8px}
+.nav-overview[hidden]{display:none}
+.nav-overview-lbl{font-size:11px;color:var(--pink);font-weight:600;margin-bottom:3px}
 .nav-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .nav-controls button{flex:1;min-width:96px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit}
 .nav-controls button.nav-live{background:rgba(120,220,160,.16);border-color:rgba(120,220,160,.45);color:#a6f0c6}
@@ -950,6 +954,7 @@ body.smode .smode-badge{display:inline}
      <span class="rd-focus-badge" id="navProviderBadge">GraphHopper</span>
     </div>
     <div class="nav-meta" id="navRouteMeta"></div>
+    <div class="nav-overview" id="navOverviewBox" hidden><div class="nav-overview-lbl">🗺️ 大致路线总览</div><div id="navOverviewText"></div></div>
     <div id="navOffRouteBar" class="nav-offroute" hidden>
      <span id="navOffRouteText">⚠️ 好像偏离路线了</span>
      <button type="button" class="rd-qbtn" onclick="recalcNavRoute()">🔄 重新规划</button>
@@ -2863,7 +2868,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.8.3'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.8.5'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -7784,6 +7789,50 @@ function ensureCompassOnSteps(steps,origin){
   });
   return steps;
 }
+function mergeTinyWalkSteps(steps){
+  // 合并过碎的短步行步（<25米），绝不跨公交/地铁段合并，让步骤清爽好读
+  if(!Array.isArray(steps)||steps.length<=1)return steps||[];
+  const out=[];
+  for(const raw of steps){
+    const s={...raw};
+    const prev=out[out.length-1];
+    const isTransit=s.kind==='transit'||/^.*乘坐\s*/.test(s.instruction||'');
+    const prevIsTransit=prev&&(prev.kind==='transit'||/^.*乘坐\s*/.test(prev.instruction||''));
+    if(prev&&!isTransit&&!prevIsTransit&&((s.distanceM||0)<25||(prev.distanceM||0)<25)){
+      const cleanCur=String(s.instruction||'').replace(/^向[东南西北]{1,2}方向\s*·\s*/,'').trim();
+      prev.instruction=prev.instruction+(cleanCur?'，接着'+cleanCur:'');
+      prev.distanceM=(prev.distanceM||0)+(s.distanceM||0);
+      prev.durationS=(prev.durationS||0)+(s.durationS||0);
+      prev.lat=s.lat;prev.lon=s.lon;
+      prev.landmarks=[...new Set([...(prev.landmarks||[]),...(s.landmarks||[])])].slice(0,3);
+    }else{
+      out.push(s);
+    }
+  }
+  return out.map((s,i)=>({...s,idx:i}));
+}
+function buildSimpleOverview(mode,steps,destName){
+  if(mode==='transit'){
+    const parts=[];
+    let walkBuf=0;
+    const flushWalk=()=>{if(walkBuf>0){parts.push(`🚶 步行约${navFmtDist(walkBuf)}`);walkBuf=0}};
+    for(const s of steps){
+      if(s.kind==='transit'||/乘坐/.test(s.instruction||'')){
+        flushWalk();
+        const txt=String(s.instruction||'').replace(/^向[东南西北]{1,2}方向\s*·\s*/,'').trim();
+        parts.push((/地铁|轨道/.test(txt)?'🚇 ':'🚌 ')+txt);
+      }else{
+        walkBuf+=(s.distanceM||0);
+      }
+    }
+    flushWalk();
+    if(parts.length)return parts;
+  }
+  const icon=mode==='driving'?'🚗':'🚶';
+  const roads=[...new Set(steps.map(s=>s.road).filter(Boolean))].slice(0,3);
+  if(roads.length)return [`${icon} 经 ${roads.join(' → ')} → ${destName||'目的地'}`];
+  return [`${icon} 直达 ${destName||'目的地'}（共${steps.length}步）`];
+}
 function pointToSegmentMeters(pLat,pLon,aLat,aLon,bLat,bLon){
   const cosLat=Math.cos(pLat*Math.PI/180);
   const mx=111320*cosLat,my=110540;
@@ -7994,7 +8043,7 @@ async function routeWithBaidu(origin,destName,mode,ak){
                   const ep=offStop?.point||null;
                   const wp=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
                   const txt=`乘坐 ${title}`+(onStop?.title?`（${onStop.title}上车`:'')+(offStop?.title?` → ${offStop.title}下车`:'')+(stopCount?`，共${stopCount}站`:'')+(onStop?.title||offStop?.title?'）':'');
-                  steps.push({idx:steps.length,instruction:txt,road:title,distanceM:Math.round(d),durationS:Math.round(totalDur/Math.max(1,nLines)),lat:wp.lat,lon:wp.lon,landmarks:[onStop?.title,offStop?.title].filter(Boolean)});
+                  steps.push({idx:steps.length,kind:'transit',instruction:txt,road:title,distanceM:Math.round(d),durationS:Math.round(totalDur/Math.max(1,nLines)),lat:wp.lat,lon:wp.lon,landmarks:[onStop?.title,offStop?.title].filter(Boolean)});
                 }
               }
               if(!steps.length){
@@ -8076,10 +8125,12 @@ async function routeWithBaidu(origin,destName,mode,ak){
     }
     routeRes.steps=expanded.map((s,i)=>({...s,idx:i}));
   }
+  const baiduOverview=buildSimpleOverview(mode,routeRes.steps,destPoi.name);
+  routeRes.steps=mergeTinyWalkSteps(routeRes.steps);
   ensureCompassOnSteps(routeRes.steps,origin);
   if(routeRes.steps[0]&&geoInfo.pois.length)routeRes.steps[0].landmarks=[...new Set([...(routeRes.steps[0].landmarks||[]),...geoInfo.pois])].slice(0,3);
   return {
-    v:1,active:true,provider:'baidu',mode,note:'',
+    v:1,active:true,provider:'baidu',mode,note:'',overview:baiduOverview,
     origin:{name:geoInfo.address||origin.name||'当前位置',lat:origin.lat,lon:origin.lon},
     destination:{name:destPoi.name,lat:wDest.lat,lon:wDest.lon},
     totalDistanceM:routeRes.dist,
@@ -8245,15 +8296,17 @@ async function routeWithGraphHopper(origin,destName,mode,ghk){
       landmarks:[]
     };
   });
-  ensureCompassOnSteps(steps,origin);
-  const [addr]=await Promise.all([osmReverseAddress(origin.lat,origin.lon),osmFetchLandmarksForSteps(steps)]);
+  const mergedGhSteps=mergeTinyWalkSteps(steps);
+  ensureCompassOnSteps(mergedGhSteps,origin);
+  const ghOverview=buildSimpleOverview(actualMode,mergedGhSteps,dest.name);
+  const [addr]=await Promise.all([osmReverseAddress(origin.lat,origin.lon),osmFetchLandmarksForSteps(mergedGhSteps)]);
   return {
-    v:1,active:true,provider:'graphhopper',mode:actualMode,note,
+    v:1,active:true,provider:'graphhopper',mode:actualMode,note,overview:ghOverview,
     origin:{name:addr||origin.name||'当前位置',lat:origin.lat,lon:origin.lon},
     destination:dest,
     totalDistanceM:Math.round(path.distance||0),
     totalDurationS:Math.round((path.time||0)/1000),
-    steps,currentStepIdx:0,
+    steps:mergedGhSteps,currentStepIdx:0,
     lastFix:{lat:origin.lat,lon:origin.lon,accuracy:origin.accuracy||30,ts:origin.ts||Date.now(),address:addr||''},
     offRoute:false,offRouteMeters:0,
     createdAt:Date.now(),updatedAt:Date.now()
@@ -8347,10 +8400,12 @@ async function routeWithAMap(origin,destName,mode,amk,ams){
       });
     }
   });
+  const amapOverview=buildSimpleOverview(mode,routeRes.steps,destPoi.name);
+  routeRes.steps=mergeTinyWalkSteps(routeRes.steps);
   ensureCompassOnSteps(routeRes.steps,origin);
   if(routeRes.steps[0]&&geoInfo.pois.length)routeRes.steps[0].landmarks=geoInfo.pois;
   return {
-    v:1,active:true,provider:'amap',mode,note:'',
+    v:1,active:true,provider:'amap',mode,note:'',overview:amapOverview,
     origin:{name:geoInfo.address||origin.name||'当前位置',lat:origin.lat,lon:origin.lon},
     destination:{name:destPoi.name,lat:wDest.lat,lon:wDest.lon},
     totalDistanceM:routeRes.dist,
@@ -8500,6 +8555,11 @@ function updateNavUI(){
   if(fix?.ts)metaParts.push(`定位：${fixAge}（精度约 ${Math.round(fix.accuracy||0)} 米）`);
   if(navState.note)metaParts.push('提示：'+navState.note);
   $('navRouteMeta').textContent=metaParts.join('\n');
+  const ovBox=$('navOverviewBox'),ovTxt=$('navOverviewText');
+  if(ovBox&&ovTxt){
+    const ovArr=(Array.isArray(navState.overview)&&navState.overview.length)?navState.overview:buildSimpleOverview(navState.mode,steps,navState.destination?.name);
+    if(ovArr.length){ovBox.hidden=false;ovTxt.textContent=ovArr.join(' → ')}else ovBox.hidden=true;
+  }
 
   const offBar=$('navOffRouteBar');
   if(offBar){
@@ -8534,7 +8594,8 @@ function formatNavSummaryBlock(includeGPS=true){
   const lines=[
     '【当前持久化导航路况（独立于聊天轮数）】',
     `目的地：${navState.destination?.name||'未知'}｜方式：${modeTxt}｜引擎：${navState.provider==='baidu'?'百度地图':(navState.provider==='amap'?'高德':'GraphHopper')}`,
-    `剩余路程：${navFmtDist(rem.distM)}（${navFmtDur(rem.durS)}）｜进度：第 ${idx+1}/${steps.length} 步`
+    `剩余路程：${navFmtDist(rem.distM)}（${navFmtDur(rem.durS)}）｜进度：第 ${idx+1}/${steps.length} 步`,
+    ...((Array.isArray(navState.overview)&&navState.overview.length)?['大致路线总览：'+navState.overview.join(' → ')]:[])
   ];
   if(fix?.address)lines.push('当前大致位置：'+fix.address);
   if(includeGPS&&travelPointValid(fix)){

@@ -976,6 +976,7 @@ body.smode .smode-badge{display:inline}
    <div class="travel-provider-grid">
     <a id="travelAppleSearch" target="_blank" rel="noopener noreferrer">苹果地图 · 查地点 ↗</a><a id="travelGoogleSearch" target="_blank" rel="noopener noreferrer">Google · 查地点 ↗</a>
     <a id="travelAppleRoute" target="_blank" rel="noopener noreferrer">苹果地图 · 看路线 ↗</a><a id="travelGoogleRoute" target="_blank" rel="noopener noreferrer">Google · 看路线 ↗</a>
+    <a id="travelBaiduSearch" target="_blank" rel="noopener noreferrer">百度地图 · 查地点 ↗</a><a id="travelBaiduRoute" target="_blank" rel="noopener noreferrer">百度地图 · 看路线 ↗</a>
    </div>
    <p class="travel-note">查找与路线会打开地图 App 或网页，请在那里确认具体地点。路线起点由地图服务获取，小屋不会收到它的路线结果。</p>
    <label class="travel-check"><input type="checkbox" id="travelIncludeGPS" checked onchange="updateTravelUI()">把已获取的坐标一起放入草稿</label>
@@ -2862,7 +2863,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.8.2'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.8.3'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -2980,7 +2981,31 @@ function travelMapLinks(p,landmark,destination,mode){
   // Omit origin: the native map can get a current fix rather than use an old snapshot.
   ar=a.href;gr=g.href;
  }
- return {apple:apple.href,google:google.href,appleRoute:ar,googleRoute:gr};
+ const baiduMode={walking:'walking',transit:'transit',driving:'driving'}[mode]||'walking';
+ let bs='https://map.baidu.com/',br='';
+ if(query){
+  const u=new URL('https://api.map.baidu.com/geocoder');
+  u.searchParams.set('address',query);u.searchParams.set('output','html');u.searchParams.set('src','peachi');
+  bs=u.href;
+ }
+ if(destination){
+  const u=new URL('https://api.map.baidu.com/direction');
+  if(travelFresh(p)){
+   const bd=(typeof wgs84ToBd09==='function')?wgs84ToBd09(p.lat,p.lon):p;
+   u.searchParams.set('origin',`name:我的位置|latlng:${bd.lat.toFixed(6)},${bd.lon.toFixed(6)}`);
+  }else if(landmark){
+   u.searchParams.set('origin',landmark);
+  }else{
+   u.searchParams.set('origin','我的位置');
+  }
+  u.searchParams.set('destination',destination);
+  u.searchParams.set('mode',baiduMode);
+  u.searchParams.set('region','全国');
+  u.searchParams.set('output','html');
+  u.searchParams.set('src','peachi');
+  br=u.href;
+ }
+ return {apple:apple.href,google:google.href,appleRoute:ar,googleRoute:gr,baidu:bs,baiduRoute:br};
 }
 function travelSnapshot(){
  if(typeof buildNavDraftBlock==='function'&&navState?.active){
@@ -3007,7 +3032,7 @@ function updateTravelUI(){
  $('travelStatus').textContent=status;
  $('travelExpand').textContent=travelPointValid(p)?'展开附近地图':'浏览世界地图';
  const urls=travelMapLinks(p,travelText('travelLandmark'),travelText('travelDestination'),travelMode());
- [['travelAppleSearch',urls.apple],['travelGoogleSearch',urls.google],['travelAppleRoute',urls.appleRoute],['travelGoogleRoute',urls.googleRoute]].forEach(([id,url])=>{
+ [['travelAppleSearch',urls.apple],['travelGoogleSearch',urls.google],['travelAppleRoute',urls.appleRoute],['travelGoogleRoute',urls.googleRoute],['travelBaiduSearch',urls.baidu],['travelBaiduRoute',urls.baiduRoute]].forEach(([id,url])=>{
   const a=$(id);if(url){a.href=url;a.removeAttribute('aria-disabled');a.removeAttribute('tabindex')}else{a.removeAttribute('href');a.setAttribute('aria-disabled','true');a.setAttribute('tabindex','-1')}
  });
  const text=travelSnapshot();$('travelPreview').textContent=text||'定位一次，或填入地名后，这里会显示待分享内容。';
@@ -7733,6 +7758,43 @@ function haversineMeters(lat1,lon1,lat2,lon2){
   const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
+function bearingDirection(lat1,lon1,lat2,lon2){
+  if(![lat1,lon1,lat2,lon2].every(Number.isFinite))return '';
+  if(haversineMeters(lat1,lon1,lat2,lon2)<3)return '';
+  const toRad=d=>d*Math.PI/180,toDeg=r=>r*180/Math.PI;
+  const y=Math.sin(toRad(lon2-lon1))*Math.cos(toRad(lat2));
+  const x=Math.cos(toRad(lat1))*Math.sin(toRad(lat2))-Math.sin(toRad(lat1))*Math.cos(toRad(lat2))*Math.cos(toRad(lon2-lon1));
+  const brng=(toDeg(Math.atan2(y,x))+360)%360;
+  const dirs=['正北','东北','正东','东南','正南','西南','正西','西北'];
+  return dirs[Math.round(brng/45)%8];
+}
+function ensureCompassOnSteps(steps,origin){
+  let prevLat=origin?.lat,prevLon=origin?.lon;
+  steps.forEach(s=>{
+    const sLat=Number.isFinite(s.startLat)?s.startLat:prevLat;
+    const sLon=Number.isFinite(s.startLon)?s.startLon:prevLon;
+    const dir=bearingDirection(sLat,sLon,s.lat,s.lon);
+    if(dir){
+      s.compass=dir;
+      if(!/[东南西北]/.test(s.instruction||'')){
+        s.instruction=`向${dir}方向 · ${s.instruction}`;
+      }
+    }
+    if(Number.isFinite(s.lat)&&Number.isFinite(s.lon)){prevLat=s.lat;prevLon=s.lon}
+  });
+  return steps;
+}
+function pointToSegmentMeters(pLat,pLon,aLat,aLon,bLat,bLon){
+  const cosLat=Math.cos(pLat*Math.PI/180);
+  const mx=111320*cosLat,my=110540;
+  const ax=(aLon-pLon)*mx,ay=(aLat-pLat)*my;
+  const bx=(bLon-pLon)*mx,by=(bLat-pLat)*my;
+  const dx=bx-ax,dy=by-ay;
+  const len2=dx*dx+dy*dy;
+  if(len2<1e-6)return Math.hypot(ax,ay);
+  const t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/len2));
+  return Math.hypot(ax+t*dx,ay+t*dy);
+}
 function isInChinaMainland(lat,lon){
   return lat>=18.0&&lat<=53.6&&lon>=73.5&&lon<=135.1&&!(lat>=21.8&&lat<=25.4&&lon>=119.3&&lon<=122.1);
 }
@@ -7915,10 +7977,12 @@ async function routeWithBaidu(origin,destName,mode,ak){
                   const wr=plan.getRoute(i);
                   const d=typeof wr.getDistance==='function'?Number(wr.getDistance(false))||0:0;
                   const path=wr.getPath?wr.getPath():[];
+                  const sp=path.length?path[0]:null;
                   const ep=path.length?path[path.length-1]:null;
-                  const wp=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
+                  const wsp=sp?bd09ToWgs84(sp.lat,sp.lng):null;
+                  const wep=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
                   const txt=bmapStripHtml(wr.getDescription?wr.getDescription(false):'')||(d>0?`步行约${navFmtDist(d)}`:'步行衔接');
-                  if(d>0||txt)steps.push({idx:steps.length,instruction:txt,road:'',distanceM:Math.round(d),durationS:Math.round(d/1.2),lat:wp.lat,lon:wp.lon,landmarks:[]});
+                  if(d>0||txt)steps.push({idx:steps.length,instruction:txt,road:'',distanceM:Math.round(d),durationS:Math.round(d/1.2),startLat:wsp?.lat,startLon:wsp?.lon,lat:wep.lat,lon:wep.lon,landmarks:[],_bdWalkStart:sp,_bdWalkEnd:ep,_isTransitWalk:true});
                 }
                 if(i<nLines){
                   const ln=plan.getLine(i);
@@ -7974,6 +8038,45 @@ async function routeWithBaidu(origin,destName,mode,ak){
       wk.search(startPt,endPt);
     }
   });
+  // v7.8.3: 若公交方案中包含较长步行段（>=80米），顺手用 WalkingRoute 展开详细左右转与路名
+  if(mode==='transit'){
+    const expanded=[];
+    for(const seg of routeRes.steps){
+      if(seg._isTransitWalk&&seg.distanceM>=80&&seg._bdWalkStart&&seg._bdWalkEnd){
+        const sub=await new Promise(res=>{
+          try{
+            const wk2=new BMap.WalkingRoute(geoInfo.city||'全国',{
+              onSearchComplete:r2=>{
+                try{
+                  if(wk2.getStatus()===window.BMAP_STATUS_SUCCESS&&r2&&r2.getNumPlans()>0){
+                    const rt2=r2.getPlan(0).getRoute(0);
+                    const n2=rt2.getNumSteps?rt2.getNumSteps():0;
+                    const arr=[];
+                    for(let k=0;k<n2;k++){
+                      const st2=rt2.getStep(k);
+                      const pos2=st2.getPosition?st2.getPosition():null;
+                      const wp2=pos2?bd09ToWgs84(pos2.lat,pos2.lng):{lat:seg.lat,lon:seg.lon};
+                      const d2=typeof st2.getDistance==='function'?Number(st2.getDistance(false))||0:0;
+                      const desc2=bmapStripHtml(st2.getDescription?st2.getDescription(false):'');
+                      if(desc2)arr.push({idx:0,instruction:desc2,road:'',distanceM:Math.round(d2),durationS:Math.round(d2/1.2),lat:wp2.lat,lon:wp2.lon,landmarks:[]});
+                    }
+                    if(arr.length)return res(arr);
+                  }
+                }catch(e){}
+                res(null);
+              }
+            });
+            wk2.search(seg._bdWalkStart,seg._bdWalkEnd);
+          }catch(e){res(null)}
+        });
+        if(sub&&sub.length){sub.forEach(x=>expanded.push(x));continue}
+      }
+      const clean={...seg};delete clean._bdWalkStart;delete clean._bdWalkEnd;delete clean._isTransitWalk;
+      expanded.push(clean);
+    }
+    routeRes.steps=expanded.map((s,i)=>({...s,idx:i}));
+  }
+  ensureCompassOnSteps(routeRes.steps,origin);
   if(routeRes.steps[0]&&geoInfo.pois.length)routeRes.steps[0].landmarks=[...new Set([...(routeRes.steps[0].landmarks||[]),...geoInfo.pois])].slice(0,3);
   return {
     v:1,active:true,provider:'baidu',mode,note:'',
@@ -8022,15 +8125,24 @@ function updateNavProgressFromFix(point){
     break;
   }
   navState.currentStepIdx=idx;
-  // 计算到整条路线最近节点的距离以判断是否偏航
-  let minDist=Infinity;
+  // v7.8.3: 计算当前位置到整条路线折线段的真实垂直距离，避免长步行段起点误报偏航
+  const poly=[];
+  if(Number.isFinite(navState.origin?.lat)&&Number.isFinite(navState.origin?.lon))poly.push([navState.origin.lat,navState.origin.lon]);
   for(const s of steps){
-    if(Number.isFinite(s.lat)&&Number.isFinite(s.lon)){
-      const d=haversineMeters(point.lat,point.lon,s.lat,s.lon);
+    if(Number.isFinite(s.startLat)&&Number.isFinite(s.startLon))poly.push([s.startLat,s.startLon]);
+    if(Number.isFinite(s.lat)&&Number.isFinite(s.lon))poly.push([s.lat,s.lon]);
+  }
+  if(Number.isFinite(navState.destination?.lat)&&Number.isFinite(navState.destination?.lon))poly.push([navState.destination.lat,navState.destination.lon]);
+  let minDist=Infinity;
+  if(poly.length>=2){
+    for(let i=0;i<poly.length-1;i++){
+      const d=pointToSegmentMeters(point.lat,point.lon,poly[i][0],poly[i][1],poly[i+1][0],poly[i+1][1]);
       if(d<minDist)minDist=d;
     }
+  }else if(poly.length===1){
+    minDist=haversineMeters(point.lat,point.lon,poly[0][0],poly[0][1]);
   }
-  const offThresh=Math.max(80,Math.round((point.accuracy||20)*1.5));
+  const offThresh=Math.max(85,Math.round((point.accuracy||20)*1.5));
   navState.offRoute=Number.isFinite(minDist)&&minDist>offThresh;
   navState.offRouteMeters=Number.isFinite(minDist)?Math.round(minDist):0;
   navState.updatedAt=Date.now();
@@ -8133,6 +8245,7 @@ async function routeWithGraphHopper(origin,destName,mode,ghk){
       landmarks:[]
     };
   });
+  ensureCompassOnSteps(steps,origin);
   const [addr]=await Promise.all([osmReverseAddress(origin.lat,origin.lon),osmFetchLandmarksForSteps(steps)]);
   return {
     v:1,active:true,provider:'graphhopper',mode:actualMode,note,
@@ -8234,6 +8347,7 @@ async function routeWithAMap(origin,destName,mode,amk,ams){
       });
     }
   });
+  ensureCompassOnSteps(routeRes.steps,origin);
   if(routeRes.steps[0]&&geoInfo.pois.length)routeRes.steps[0].landmarks=geoInfo.pois;
   return {
     v:1,active:true,provider:'amap',mode,note:'',

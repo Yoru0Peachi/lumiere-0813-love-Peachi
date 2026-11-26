@@ -606,6 +606,9 @@ body.smode .smode-badge{display:inline}
      <label class="label" style="font-size:12px">🌍 GraphHopper Key（海外/京都与全球步行·免费免绑卡）</label>
      <input type="password" id="ghKey" class="inp" placeholder="填入 GraphHopper API Key">
      <p class="hint" style="margin-bottom:10px">去 <a href="https://graphhopper.com/dashboard/" target="_blank" rel="noopener noreferrer">graphhopper.com</a> 邮箱注册获取，每天500次免费额度，仅保存在本地浏览器。</p>
+     <label class="label" style="font-size:12px">🇨🇳 百度地图浏览器端 AK（国内步行/公交地铁/中文地标·推荐）</label>
+     <input type="password" id="bmapKey" class="inp" placeholder="填入百度地图浏览器端 AK" style="margin-bottom:4px">
+     <p class="hint" style="margin-bottom:10px">仅保存在本地浏览器；记得在百度控制台把你的小屋域名加入 Referer 白名单（如 yoru0peachi.github.io/*）。</p>
      <label class="label" style="font-size:12px">🇨🇳 高德 Web端 (JS API) Key（国内步行/公交地铁/中文地标·选填）</label>
      <input type="password" id="amapKey" class="inp" placeholder="填入高德 JS API Key" style="margin-bottom:6px">
      <label class="label" style="font-size:12px">🔐 高德安全密钥 jscode（与上方 Key 成对填写）</label>
@@ -1895,7 +1898,7 @@ const PeachDB={
 // ========== PERSISTENCE ==========
 function saveGlobal(){
   try{
-    const value=JSON.stringify({k:$('apiKey').value,tk:$('tavilyKey').value,ghk:$('ghKey')?.value||'',amk:$('amapKey')?.value||'',ams:$('amapSec')?.value||'',sp:$('sys').value,m:gModel,p:gParams});
+    const value=JSON.stringify({k:$('apiKey').value,tk:$('tavilyKey').value,ghk:$('ghKey')?.value||'',bmk:$('bmapKey')?.value||'',amk:$('amapKey')?.value||'',ams:$('amapSec')?.value||'',sp:$('sys').value,m:gModel,p:gParams});
     localStorage.setItem('ps3_g',value);
     if(localStorage.getItem('ps3_g')!==value)throw Error('save failed');
     return true;
@@ -2859,7 +2862,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.8.1'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.8.2'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3638,7 +3641,7 @@ function checkConvLength(c){
   const c=$('stars');for(let i=0;i<50;i++){const s=document.createElement('div');s.className='star';s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${Math.random()*2+1}px;height:${Math.random()*2+1}px;animation-delay:${Math.random()*3}s;animation-duration:${Math.random()*2+2}s`;c.appendChild(s)}
   try{
     const g=JSON.parse(localStorage.getItem('ps3_g')||'{}');
-    if(g.k)$('apiKey').value=g.k;if(g.tk)$('tavilyKey').value=g.tk;if(g.ghk&&$('ghKey'))$('ghKey').value=g.ghk;if(g.amk&&$('amapKey'))$('amapKey').value=g.amk;if(g.ams&&$('amapSec'))$('amapSec').value=g.ams;if(g.sp)$('sys').value=g.sp;
+    if(g.k)$('apiKey').value=g.k;if(g.tk)$('tavilyKey').value=g.tk;if(g.ghk&&$('ghKey'))$('ghKey').value=g.ghk;if(g.bmk&&$('bmapKey'))$('bmapKey').value=g.bmk;if(g.amk&&$('amapKey'))$('amapKey').value=g.amk;if(g.ams&&$('amapSec'))$('amapSec').value=g.ams;if(g.sp)$('sys').value=g.sp;
     if(g.m){gModel=g.m;$('mBtnN').textContent=g.m.name||g.m.id}
     if(g.p){gParams={ctxTurns:50,...g.p};
       // v6.3 fix: ctxTurns用??而不是||，0代表"全部"不能被覆盖
@@ -3706,7 +3709,7 @@ function checkConvLength(c){
   });
   // v6.9: 对话数据加载完成后再做首次问候检查
   appReady=true;
-  for(const id of ['apiKey','tavilyKey','ghKey','amapKey','amapSec'])if($(id))$(id).addEventListener('input',saveGlobal);
+  for(const id of ['apiKey','tavilyKey','ghKey','bmapKey','amapKey','amapSec'])if($(id))$(id).addEventListener('input',saveGlobal);
   setTimeout(checkGreetingOnReturn,800);
 })();
 
@@ -4043,7 +4046,7 @@ function doExportAll(includeKeys){
       moodAllowDay:(typeof mood!=='undefined'?mood.allowDay:'')||'', // v7.6.2: 今日允许情绪标记
       sCfg:sCfg,                           // v7.6.2: S模式设置（含禁用词，换设备不再无提示消失）
       greeting:greetingSettings,
-      ...(includeKeys?{tavilyKey:$('tavilyKey').value,ghKey:$('ghKey')?.value||'',amapKey:$('amapKey')?.value||'',amapSec:$('amapSec')?.value||''}:{})
+      ...(includeKeys?{tavilyKey:$('tavilyKey').value,ghKey:$('ghKey')?.value||'',bmapKey:$('bmapKey')?.value||'',amapKey:$('amapKey')?.value||'',amapSec:$('amapSec')?.value||''}:{})
     },
     ...(includeKeys?{apiKey:$('apiKey').value}:{}),
     memory:memV2,
@@ -5050,6 +5053,7 @@ function importC(inp){
         if(d.global.greeting){greetingSettings=d.global.greeting;saveGreetingSettings();loadGreetingUI()}
         if(d.global.tavilyKey)$('tavilyKey').value=d.global.tavilyKey;
         if(d.global.ghKey&&$('ghKey'))$('ghKey').value=d.global.ghKey;
+        if(d.global.bmapKey&&$('bmapKey'))$('bmapKey').value=d.global.bmapKey;
         if(d.global.amapKey&&$('amapKey'))$('amapKey').value=d.global.amapKey;
         if(d.global.amapSec&&$('amapSec'))$('amapSec').value=d.global.amapSec;
         loadRollScheduleUI();clearRollSchedulePrompt();
@@ -5647,7 +5651,7 @@ function arcDel(type,idx){
 // v7.7.3: 临时诊断，不记录请求正文，不写入对话数据库。
 function redactDiagnostic(value){
   let text=String(value??'');
-  for(const id of ['apiKey','tavilyKey','ghKey','amapKey','amapSec']){
+  for(const id of ['apiKey','tavilyKey','ghKey','bmapKey','amapKey','amapSec']){
     const key=$(id)?.value.trim();
     if(key)text=text.split(key).join('[密钥已遮蔽]');
   }
@@ -7791,14 +7795,214 @@ function updateNavBadge(){
   }else b.style.display='none';
 }
 
+// GCJ-02 <-> BD-09 坐标转换（供百度地图国内精确对齐）
+const BD_X_PI=Math.PI*3000.0/180.0;
+function gcj02ToBd09(lat,lon){
+  const z=Math.sqrt(lon*lon+lat*lat)+0.00002*Math.sin(lat*BD_X_PI);
+  const theta=Math.atan2(lat,lon)+0.000003*Math.cos(lon*BD_X_PI);
+  return {lat:z*Math.sin(theta)+0.006,lon:z*Math.cos(theta)+0.0065};
+}
+function bd09ToGcj02(lat,lon){
+  const x=lon-0.0065,y=lat-0.006;
+  const z=Math.sqrt(x*x+y*y)-0.00002*Math.sin(y*BD_X_PI);
+  const theta=Math.atan2(y,x)-0.000003*Math.cos(x*BD_X_PI);
+  return {lat:z*Math.sin(theta),lon:z*Math.cos(theta)};
+}
+function wgs84ToBd09(lat,lon){
+  const g=wgs84ToGcj02(lat,lon);
+  return gcj02ToBd09(g.lat,g.lon);
+}
+function bd09ToWgs84(lat,lon){
+  const g=bd09ToGcj02(lat,lon);
+  return gcj02ToWgs84(g.lat,g.lon);
+}
+
+let bmapLoadPromise=null;
+function bmapStripHtml(s){
+  return String(s||'').replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+}
+function loadBMapSDK(ak){
+  if(window.BMap&&window.BMap.Point)return Promise.resolve(window.BMap);
+  if(bmapLoadPromise)return bmapLoadPromise;
+  bmapLoadPromise=new Promise((resolve,reject)=>{
+    const cbName='__peachiBMapReady';
+    const timer=setTimeout(()=>{bmapLoadPromise=null;delete window[cbName];reject(Error('百度地图加载超时，请检查网络或 Referer 白名单'))},12000);
+    window[cbName]=()=>{
+      clearTimeout(timer);delete window[cbName];
+      if(window.BMap&&window.BMap.Point)resolve(window.BMap);
+      else{bmapLoadPromise=null;reject(Error('百度地图 SDK 初始化失败'))}
+    };
+    const s=document.createElement('script');
+    s.src=`https://api.map.baidu.com/api?v=3.0&ak=${encodeURIComponent(ak)}&callback=${cbName}`;
+    s.async=true;
+    s.onerror=()=>{clearTimeout(timer);delete window[cbName];bmapLoadPromise=null;reject(Error('百度地图脚本加载失败，请检查 AK 与 Referer 白名单'))};
+    document.head.appendChild(s);
+  });
+  return bmapLoadPromise;
+}
+function bmapSearchPlace(BMap,city,query){
+  return new Promise((resolve,reject)=>{
+    const ls=new BMap.LocalSearch(city||'全国',{
+      onSearchComplete:res=>{
+        try{
+          if(ls.getStatus()===window.BMAP_STATUS_SUCCESS&&res&&res.getCurrentNumPois()>0){
+            const poi=res.getPoi(0);
+            if(poi&&poi.point)return resolve({name:poi.title||query,bdLat:poi.point.lat,bdLon:poi.point.lng,address:poi.address||''});
+          }
+        }catch(e){}
+        reject(Error('百度地图未找到地点「'+query+'」，请补充城市名再试（如：天津 津塔）'));
+      }
+    });
+    ls.search(query);
+  });
+}
+async function routeWithBaidu(origin,destName,mode,ak){
+  const BMap=await loadBMapSDK(ak);
+  const bdOrig=wgs84ToBd09(origin.lat,origin.lon);
+  const startPt=new BMap.Point(bdOrig.lon,bdOrig.lat);
+  // 1. 逆地理编码拿当前地址、城市和周边地标
+  const geoInfo=await new Promise(res=>{
+    try{
+      const gc=new BMap.Geocoder();
+      gc.getLocation(startPt,r=>{
+        if(r){
+          const c=r.addressComponents||{};
+          const pois=(r.surroundingPois||[]).slice(0,3).map(p=>p.title).filter(Boolean);
+          res({address:r.address||'',city:c.city||c.province||'全国',pois});
+        }else res({address:'',city:'全国',pois:[]});
+      },{poiRadius:200,numPois:5});
+    }catch(e){res({address:'',city:'全国',pois:[]})}
+  });
+  // 2. 搜索目的地坐标
+  const destPoi=await bmapSearchPlace(BMap,geoInfo.city,destName);
+  const endPt=new BMap.Point(destPoi.bdLon,destPoi.bdLat);
+  const wDest=bd09ToWgs84(destPoi.bdLat,destPoi.bdLon);
+  // 3. 路线规划（步行 / 公交地铁 / 驾车）
+  const routeRes=await new Promise((resolve,reject)=>{
+    const extractSteps=(route)=>{
+      const steps=[];
+      const n=route.getNumSteps?route.getNumSteps():0;
+      for(let i=0;i<n;i++){
+        const st=route.getStep(i);
+        const pos=st.getPosition?st.getPosition():null;
+        const wp=pos?bd09ToWgs84(pos.lat,pos.lng):wDest;
+        const dist=typeof st.getDistance==='function'?Number(st.getDistance(false))||0:0;
+        steps.push({
+          idx:i,
+          instruction:bmapStripHtml(st.getDescription?st.getDescription(false):'')||'继续前行',
+          road:'',
+          distanceM:Math.round(dist),
+          durationS:Math.round(dist/1.2),
+          lat:wp.lat,lon:wp.lon,landmarks:[]
+        });
+      }
+      return steps;
+    };
+    if(mode==='transit'){
+      const tr=new BMap.TransitRoute(geoInfo.city||'全国',{
+        onSearchComplete:res=>{
+          try{
+            if(tr.getStatus()===window.BMAP_STATUS_SUCCESS&&res&&res.getNumPlans()>0){
+              const plan=res.getPlan(0);
+              const steps=[];
+              const totalDist=typeof plan.getDistance==='function'?Number(plan.getDistance(false))||0:0;
+              const totalDur=typeof plan.getDuration==='function'?Number(plan.getDuration(false))||0:0;
+              // 交替读取步行段与公交/地铁段
+              const nRoutes=plan.getNumRoutes?plan.getNumRoutes():0;
+              const nLines=plan.getNumLines?plan.getNumLines():0;
+              for(let i=0;i<Math.max(nRoutes,nLines);i++){
+                if(i<nRoutes){
+                  const wr=plan.getRoute(i);
+                  const d=typeof wr.getDistance==='function'?Number(wr.getDistance(false))||0:0;
+                  const path=wr.getPath?wr.getPath():[];
+                  const ep=path.length?path[path.length-1]:null;
+                  const wp=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
+                  const txt=bmapStripHtml(wr.getDescription?wr.getDescription(false):'')||(d>0?`步行约${navFmtDist(d)}`:'步行衔接');
+                  if(d>0||txt)steps.push({idx:steps.length,instruction:txt,road:'',distanceM:Math.round(d),durationS:Math.round(d/1.2),lat:wp.lat,lon:wp.lon,landmarks:[]});
+                }
+                if(i<nLines){
+                  const ln=plan.getLine(i);
+                  const onStop=ln.getGetOnStop?ln.getGetOnStop():null;
+                  const offStop=ln.getGetOffStop?ln.getGetOffStop():null;
+                  const stopCount=ln.getNumViaStops?ln.getNumViaStops():0;
+                  const title=ln.title||'公交/地铁';
+                  const d=typeof ln.getDistance==='function'?Number(ln.getDistance(false))||0:0;
+                  const ep=offStop?.point||null;
+                  const wp=ep?bd09ToWgs84(ep.lat,ep.lng):wDest;
+                  const txt=`乘坐 ${title}`+(onStop?.title?`（${onStop.title}上车`:'')+(offStop?.title?` → ${offStop.title}下车`:'')+(stopCount?`，共${stopCount}站`:'')+(onStop?.title||offStop?.title?'）':'');
+                  steps.push({idx:steps.length,instruction:txt,road:title,distanceM:Math.round(d),durationS:Math.round(totalDur/Math.max(1,nLines)),lat:wp.lat,lon:wp.lon,landmarks:[onStop?.title,offStop?.title].filter(Boolean)});
+                }
+              }
+              if(!steps.length){
+                const desc=bmapStripHtml(plan.getDescription?plan.getDescription(false):'');
+                if(desc)steps.push({idx:0,instruction:desc,road:'',distanceM:Math.round(totalDist),durationS:Math.round(totalDur),lat:wDest.lat,lon:wDest.lon,landmarks:[]});
+              }
+              if(steps.length)return resolve({steps,dist:Math.round(totalDist),dur:Math.round(totalDur)});
+            }
+          }catch(e){}
+          reject(Error('百度公交/地铁路线规划失败，可切换步行或稍后重试'));
+        }
+      });
+      tr.search(startPt,endPt);
+    }else if(mode==='driving'){
+      const dr=new BMap.DrivingRoute(geoInfo.city||'全国',{
+        onSearchComplete:res=>{
+          try{
+            if(dr.getStatus()===window.BMAP_STATUS_SUCCESS&&res&&res.getNumPlans()>0){
+              const plan=res.getPlan(0);
+              const steps=extractSteps(plan.getRoute(0));
+              if(steps.length)return resolve({steps,dist:Math.round(Number(plan.getDistance(false))||0),dur:Math.round(Number(plan.getDuration(false))||0)});
+            }
+          }catch(e){}
+          reject(Error('百度驾车路线规划失败'));
+        }
+      });
+      dr.search(startPt,endPt);
+    }else{
+      const wk=new BMap.WalkingRoute(geoInfo.city||'全国',{
+        onSearchComplete:res=>{
+          try{
+            if(wk.getStatus()===window.BMAP_STATUS_SUCCESS&&res&&res.getNumPlans()>0){
+              const plan=res.getPlan(0);
+              const steps=extractSteps(plan.getRoute(0));
+              if(steps.length)return resolve({steps,dist:Math.round(Number(plan.getDistance(false))||0),dur:Math.round(Number(plan.getDuration(false))||0)});
+            }
+          }catch(e){}
+          reject(Error('百度步行路线规划失败'));
+        }
+      });
+      wk.search(startPt,endPt);
+    }
+  });
+  if(routeRes.steps[0]&&geoInfo.pois.length)routeRes.steps[0].landmarks=[...new Set([...(routeRes.steps[0].landmarks||[]),...geoInfo.pois])].slice(0,3);
+  return {
+    v:1,active:true,provider:'baidu',mode,note:'',
+    origin:{name:geoInfo.address||origin.name||'当前位置',lat:origin.lat,lon:origin.lon},
+    destination:{name:destPoi.name,lat:wDest.lat,lon:wDest.lon},
+    totalDistanceM:routeRes.dist,
+    totalDurationS:routeRes.dur,
+    steps:routeRes.steps,currentStepIdx:0,
+    lastFix:{lat:origin.lat,lon:origin.lon,accuracy:origin.accuracy||30,ts:origin.ts||Date.now(),address:geoInfo.address||'',nearbyLandmarks:geoInfo.pois},
+    offRoute:false,offRouteMeters:0,
+    createdAt:Date.now(),updatedAt:Date.now()
+  };
+}
+
 function chooseNavProvider(lat,lon){
+  const bmk=$('bmapKey')?.value.trim()||'';
   const amk=$('amapKey')?.value.trim()||'';
   const ams=$('amapSec')?.value.trim()||'';
   const ghk=$('ghKey')?.value.trim()||'';
   const inCN=Number.isFinite(lat)&&Number.isFinite(lon)?isInChinaMainland(lat,lon):false;
-  if(inCN&&amk&&ams)return 'amap';
-  if(ghk)return 'graphhopper';
-  if(amk&&ams)return 'amap';
+  if(inCN){
+    if(bmk)return 'baidu';
+    if(amk&&ams)return 'amap';
+    if(ghk)return 'graphhopper';
+  }else{
+    if(ghk)return 'graphhopper';
+    if(bmk)return 'baidu';
+    if(amk&&ams)return 'amap';
+  }
   return '';
 }
 
@@ -8050,10 +8254,11 @@ async function calcNavRoute(){
   const destText=travelText('travelDestination');
   if(!destText){alert('请先在「这一站想去」填好目的地哦🍑');$('travelDestination')?.focus();return}
   const ghk=$('ghKey')?.value.trim()||'';
+  const bmk=$('bmapKey')?.value.trim()||'';
   const amk=$('amapKey')?.value.trim()||'';
   const ams=$('amapSec')?.value.trim()||'';
-  if(!ghk&&!(amk&&ams)){
-    alert('请先在「全局设置 → 🗺️ 导航路线 Key」填入 GraphHopper Key 或高德 JS API Key，或者直接用下方苹果／Google 地图跳转哦🍑');
+  if(!ghk&&!bmk&&!(amk&&ams)){
+    alert('请先在「全局设置 → 🗺️ 导航路线 Key」填入百度地图 AK、GraphHopper Key 或高德 Key，或者直接用下方苹果／Google 地图跳转哦🍑');
     return;
   }
   navBusy=true;
@@ -8062,6 +8267,11 @@ async function calcNavRoute(){
     let origin=null;
     if(travelPointValid(travelState.point)){
       origin={...travelState.point,name:travelText('travelLandmark')||'当前位置'};
+    }else if(travelText('travelLandmark')&&bmk){
+      const BMap=await loadBMapSDK(bmk);
+      const op=await bmapSearchPlace(BMap,'全国',travelText('travelLandmark'));
+      const wp=bd09ToWgs84(op.bdLat,op.bdLon);
+      origin={name:op.name,lat:wp.lat,lon:wp.lon,accuracy:30,ts:Date.now()};
     }else if(travelText('travelLandmark')&&ghk){
       origin=await ghGeocode(travelText('travelLandmark'),ghk,null);
     }else{
@@ -8077,7 +8287,8 @@ async function calcNavRoute(){
     const provider=chooseNavProvider(origin.lat,origin.lon);
     const mode=travelMode();
     let result;
-    if(provider==='amap')result=await routeWithAMap(origin,destText,mode,amk,ams);
+    if(provider==='baidu')result=await routeWithBaidu(origin,destText,mode,bmk);
+    else if(provider==='amap')result=await routeWithAMap(origin,destText,mode,amk,ams);
     else if(provider==='graphhopper')result=await routeWithGraphHopper(origin,destText,mode,ghk);
     else throw Error('未配置可用的导航引擎 Key');
     navState=result;
@@ -8146,16 +8357,18 @@ function updateNavUI(){
   updateNavBadge();
   const card=$('navActiveCard');if(!card)return;
   const ghk=$('ghKey')?.value.trim()||'';
+  const bmk=$('bmapKey')?.value.trim()||'';
   const amk=$('amapKey')?.value.trim()||'';
   const ams=$('amapSec')?.value.trim()||'';
   const noteEl=$('navEngineNote');
   if(noteEl){
     const ready=[];
+    if(bmk)ready.push('百度地图（国内步行/公交/地标）');
     if(amk&&ams)ready.push('高德（国内步行/公交/地标）');
     if(ghk)ready.push('GraphHopper（海外京都与全球）');
     noteEl.textContent=ready.length
       ?'✅ 已就绪引擎：'+ready.join(' ＋ ')+'。路线保存在本地，走路跟踪不消耗 AI 额度。'
-      :'💡 尚未填写导航 Key：可在「全局设置 → 🗺️ 导航路线 Key」填入免费的 GraphHopper 或高德 Key；不填也可继续用下方苹果／Google 地图。';
+      :'💡 尚未填写导航 Key：可在「全局设置 → 🗺️ 导航路线 Key」填入百度地图 AK、GraphHopper 或高德 Key；不填也可继续用下方苹果／Google 地图。';
   }
   if(!navState?.active||!navState.steps?.length){card.hidden=true;return}
   card.hidden=false;
@@ -8165,7 +8378,7 @@ function updateNavUI(){
   const rem=navRemainingStats();
   const modeTxt={walking:'🚶 步行',transit:'🚇 公交地铁',driving:'🚗 驾车'}[navState.mode]||'🚶 步行';
   $('navDestTitle').textContent='🧭 前往：'+(navState.destination?.name||'目的地');
-  $('navProviderBadge').textContent=navState.provider==='amap'?'高德引擎':'GraphHopper';
+  $('navProviderBadge').textContent=navState.provider==='baidu'?'百度地图':(navState.provider==='amap'?'高德引擎':'GraphHopper');
   const fix=navState.lastFix;
   const fixAge=fix?.ts?(travelFresh(fix)?'实时':'⏳ 超过5分钟旧定位'):'无GPS';
   const metaParts=[`${modeTxt} · 剩余 ${navFmtDist(rem.distM)}（${navFmtDur(rem.durS)}）`];
@@ -8206,7 +8419,7 @@ function formatNavSummaryBlock(includeGPS=true){
   const modeTxt={walking:'步行',transit:'公共交通',driving:'驾车'}[navState.mode]||'步行';
   const lines=[
     '【当前持久化导航路况（独立于聊天轮数）】',
-    `目的地：${navState.destination?.name||'未知'}｜方式：${modeTxt}｜引擎：${navState.provider==='amap'?'高德':'GraphHopper'}`,
+    `目的地：${navState.destination?.name||'未知'}｜方式：${modeTxt}｜引擎：${navState.provider==='baidu'?'百度地图':(navState.provider==='amap'?'高德':'GraphHopper')}`,
     `剩余路程：${navFmtDist(rem.distM)}（${navFmtDur(rem.durS)}）｜进度：第 ${idx+1}/${steps.length} 步`
   ];
   if(fix?.address)lines.push('当前大致位置：'+fix.address);

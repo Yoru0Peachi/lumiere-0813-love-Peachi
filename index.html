@@ -409,6 +409,13 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 .arc-card-meta{font-size:11px;color:var(--soft);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
 .arc-card-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
 .arc-badge-reading{background:rgba(232,160,191,.15);color:var(--pink)}
+.arc-badge-paused{background:rgba(212,184,150,.18);color:var(--gold)}
+.rd-focus-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;background:rgba(232,160,191,.22);color:var(--pink);margin-left:6px;vertical-align:middle}
+.rd-prog-pill{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;background:rgba(255,255,255,.07);color:var(--warm);margin-right:6px}
+.rd-quick-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rd-qbtn{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit}
+.rd-qbtn:active{background:rgba(232,160,191,.18);color:var(--pink)}
+.rd-search{width:100%;margin-bottom:8px}
 .arc-badge-done{background:rgba(124,184,255,.12);color:#7CB8FF}
 .arc-badge-want{background:rgba(255,176,124,.12);color:var(--glow)}
 .arc-badge-special{background:rgba(232,160,191,.2);color:var(--pink);border:1px solid rgba(232,160,191,.3)}
@@ -843,6 +850,7 @@ body.smode .smode-badge{display:inline}
     <div class="storage-label" id="storageLabel">存储：计算中…</div>
     <div class="storage-track"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
    </div>
+   <button class="sb-foot-btn" id="readingEntryBtn" style="margin-bottom:6px" onclick="closeSB();openReading()">📖 阅读进度</button>
    <button class="sb-foot-btn" style="margin-bottom:6px" onclick="closeSB();openArchive()">🍑 屁桃星档案馆</button>
    <button class="sb-foot-btn" onclick="backToSettings()">⚙️ 全局设置</button>
   </div>
@@ -1238,6 +1246,15 @@ body.smode .smode-badge{display:inline}
   <button class="btn-ok" onclick="acceptMemProp()">💾 存住！</button>
  </div>
 </div>
+<!-- v7.7.16: READING PROGRESS PROPOSAL BAR (no auto-dismiss) -->
+<div class="mem-proposal" id="readingProposal" style="display:none">
+ <div class="mem-proposal-text" id="rdPropText"></div>
+ <div class="mem-proposal-tags" id="rdPropMeta"></div>
+ <div class="mem-proposal-btns">
+  <button class="btn-cancel" onclick="dismissReadingProp()">先不用</button>
+  <button class="btn-ok" id="rdPropOkBtn" onclick="acceptReadingProp()">📖 确认保存</button>
+ </div>
+</div>
 
 <!-- SUMMARY OVERLAY -->
 <div class="ov" id="sumOv">
@@ -1313,6 +1330,73 @@ body.smode .smode-badge{display:inline}
  <div class="mem-proposal-btns">
   <button class="btn-cancel" onclick="dismissBackup()">知道了</button>
   <button class="btn-ok" onclick="dismissBackup();openMenu();setTimeout(exportAll,300)">📦 立即备份</button>
+ </div>
+</div>
+
+<!-- v7.7.16: STANDALONE READING PROGRESS PAGE -->
+<div class="archive-page" id="readingPage">
+ <div class="arc-head">
+  <button class="arc-back" onclick="closeReading()">←</button>
+  <div class="arc-title">📖 阅读进度</div>
+ </div>
+ <div style="padding:8px 12px 4px">
+  <p class="hint" style="margin-bottom:8px">多本书各自独立记录进度；在读、搁置与近7天刚读完的书会在聊看书时按需同步给屁屁，超过7天读完的书仅在荐书排重时读取。</p>
+  <input class="inp rd-search" id="rdSearch" placeholder="🔍 搜索书名、作者或别名…" oninput="renderReading()">
+ </div>
+ <div class="arc-tabs" id="rdTabs">
+  <button class="arc-tab active" data-rdtab="reading" onclick="rdSwitchTab('reading',this)">📖 在读</button>
+  <button class="arc-tab" data-rdtab="paused" onclick="rdSwitchTab('paused',this)">⏸️ 搁置</button>
+  <button class="arc-tab" data-rdtab="want" onclick="rdSwitchTab('want',this)">💭 想读</button>
+  <button class="arc-tab" data-rdtab="done" onclick="rdSwitchTab('done',this)">✅ 读完</button>
+  <button class="arc-tab" data-rdtab="all" onclick="rdSwitchTab('all',this)">📚 全部</button>
+ </div>
+ <div class="arc-body" id="readingBody"></div>
+</div>
+
+<!-- v7.7.16: READING BOOK FORM OVERLAY -->
+<div class="ov" id="readingFormOv" onclick="if(event.target===this)closeReadingForm()">
+ <div class="ov-box" role="dialog" aria-modal="true" aria-labelledby="rdFormTitle">
+  <h3 id="rdFormTitle">📖 添加阅读进度</h3>
+  <div class="arc-form">
+   <div class="field">
+    <label class="label">书名</label>
+    <input class="inp" id="rdFTitle" placeholder="例如：白夜行">
+   </div>
+   <div class="field">
+    <label class="label">作者（可选）</label>
+    <input class="inp" id="rdFAuthor" placeholder="例如：东野圭吾">
+   </div>
+   <div class="field">
+    <label class="label">检索别名（可选，逗号分隔，方便简称匹配）</label>
+    <input class="inp" id="rdFAliases" placeholder="例如：白夜, 东野白夜行">
+   </div>
+   <div class="field">
+    <label class="label">状态</label>
+    <div class="arc-status-btns" id="rdFStatusBtns">
+     <button type="button" class="arc-status-btn" data-st="want" onclick="rdSetFormStatus('want')">想读</button>
+     <button type="button" class="arc-status-btn" data-st="reading" onclick="rdSetFormStatus('reading')">在读</button>
+     <button type="button" class="arc-status-btn" data-st="paused" onclick="rdSetFormStatus('paused')">搁置</button>
+     <button type="button" class="arc-status-btn" data-st="done" onclick="rdSetFormStatus('done')">读完</button>
+    </div>
+   </div>
+   <div class="field">
+    <label class="label">当前进度（兼容页码 / 百分比 / 章节）</label>
+    <input class="inp" id="rdFProgress" placeholder="例如：第128页 / 共360页，或 45%，或 第4章">
+   </div>
+   <div class="field">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--warm);cursor:pointer">
+     <input type="checkbox" id="rdFFocus"> ⭐ 设为当前焦点读物（不影响其他书的进度）
+    </label>
+   </div>
+   <div class="field">
+    <label class="label">备注 / 感想（可选）</label>
+    <textarea class="txa" id="rdFNote" rows="2" placeholder="读到哪一段、心情或想记住的细节…"></textarea>
+   </div>
+  </div>
+  <div class="ov-btns">
+   <button class="btn-cancel" onclick="closeReadingForm()">取消</button>
+   <button class="btn-ok" onclick="saveReadingForm()">💾 保存</button>
+  </div>
  </div>
 </div>
 
@@ -2054,12 +2138,13 @@ function showMemProposal(tags,content){
   $('memPropText').textContent='💾 屁屁想记住：'+content;
   $('memPropTags').textContent='🏷️ 标签：'+tags+(pendingMemQueue.length?' · 还有'+pendingMemQueue.length+'条待审':'');
   $('memProposal').style.display='block';
-  setTimeout(()=>{if($('memProposal').style.display==='block')dismissMemProp()},15000);
+  // v7.7.16: 取消15秒自动消失，等待Yoru亲自确认或取消，防止离开喝口水时错过提议
 }
 // v6.3: 记忆待审队列
 let pendingMemQueue=[];
 function showNextMemProp(){
-  if(!pendingMemQueue.length){$('memProposal').style.display='none';return}
+  if($('readingProposal')&&$('readingProposal').style.display==='block')return;
+  if(!pendingMemQueue.length){$('memProposal').style.display='none';if(typeof showNextReadingProp==='function')showNextReadingProp();return}
   const next=pendingMemQueue.shift();
   showMemProposal(next.tags,next.content);
 }
@@ -2069,13 +2154,15 @@ function acceptMemProp(){
   $('memProposal').style.display='none';
   const toast=$('copyToast');toast.textContent='已存入记忆库 🍑';toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='已复制到剪贴板 🍑'},1500);
   pendingMemProp=null;
-  // 显示下一条
-  if(pendingMemQueue.length)setTimeout(showNextMemProp,800);
+  // 显示下一条（记忆队列空后再显示阅读提议）
+  if(pendingMemQueue.length)setTimeout(showNextMemProp,300);
+  else if(typeof showNextReadingProp==='function')setTimeout(showNextReadingProp,300);
 }
 function dismissMemProp(){
   $('memProposal').style.display='none';pendingMemProp=null;
-  // 跳过当前，显示下一条
-  if(pendingMemQueue.length)setTimeout(showNextMemProp,500);
+  // 跳过当前，显示下一条（记忆队列空后再显示阅读提议）
+  if(pendingMemQueue.length)setTimeout(showNextMemProp,250);
+  else if(typeof showNextReadingProp==='function')setTimeout(showNextReadingProp,250);
 }
 
 // ========== SUMMARY ==========
@@ -2196,6 +2283,7 @@ function showTrail(i){
   line('🧠','主题记忆',(t.topics&&t.topics.length)?t.topics.map(x=>esc(x)).join('、'):'本轮无匹配');
   line('📚','档案馆',t.arc?'～'+t.arc+' tok':'未注入');
   if(t.archiveRead?.active)rows.push(arcReadDetails(t.archiveRead));
+  line('📖','阅读进度',t.reading?.active?('～'+t.reading.tok+' tok · '+esc(t.reading.label||'已按需注入')):'未注入');
   line('🔍','联网搜索',t.search?'～'+t.search+' tok':'无');
   line('💬','历史消息',t.hist?(t.hist.sent+'/'+t.hist.total+' 条'):'—');
   if(t.budget){
@@ -2246,6 +2334,8 @@ function showContextPreview(){
   const totalHist=trimmed.reduce((s,m)=>s+(m.content||'').length,0);
   if(trimmed.length)segments.push({icon:'💬',label:'历史消息（'+trimmed.length+'条'+(turns>0?'，保留'+turns+'轮':'')+' ）',text:histText,cached:false,rawLen:totalHist});
   if(arcCtx)segments.push({icon:'📚',label:'档案馆注入',text:arcCtx,cached:false});
+  const rdPrev=(typeof buildReadingContext==='function'&&lastUserText)?buildReadingContext(lastUserText):{context:''};
+  if(rdPrev.context)segments.push({icon:'📖',label:'阅读进度（按需）',text:rdPrev.context,cached:false});
   // Note: search context is temporary, only exists during send
   // Compute totals
   let totalTok=0,cachedTok=0;
@@ -2703,7 +2793,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.7.15'; // v7.6.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.7.16'; // v7.6.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -3374,6 +3464,7 @@ function checkConvLength(c){
   updateMemHistBtn(); // v7.1: 版本历史按钮 + 旧备份迁移
   loadAnni();
   loadArchive(); // v6.4
+  if(typeof loadReading==='function'){loadReading();updateReadingBadge();} // v7.7.16
   // v6.7: iOS键盘避让 — 输入框聚焦时滚动到可见区域
   document.addEventListener('focusin',e=>{
     if((e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')&&e.target.closest('.s-card,.conv-settings,.ov-box')){
@@ -3736,6 +3827,7 @@ function doExportAll(includeKeys){
     memoryHistory:loadMemHistory(), // v7.1.1: 最近版本历史一起进全量备份
     anniversaries:anniversaries,
     archive:archive,
+    reading:(typeof getReadingExportData==='function'?getReadingExportData():{v:1,books:[]}), // v7.7.16
     // v6.7: 包含当前对话的实际生效prompt预览
     currentPromptPreview:curConv()?buildPromptPreview(curConv()):'',
     conversations:cleanConvs
@@ -3970,6 +4062,14 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
     api.push({role:'assistant',content:'收到，屁屁已同步当前小屋状态🍑'});
     api.push(lastEmoMsg);
   }
+  // v7.7.16: 独立多书阅读进度按需注入 —— 排在所有缓存断点之后，绝不打碎缓存
+  const rdRead=(typeof buildReadingContext==='function')?buildReadingContext(lastUserText):{context:'',report:{active:false}};
+  if(rdRead.context&&api.length&&api[api.length-1].role==='user'){
+    const lastRdMsg=api.pop();
+    api.push({role:'user',content:rdRead.context});
+    api.push({role:'assistant',content:'收到当前阅读进度，屁屁会分清每本书的进度、不猜未确认信息📖🍑'});
+    api.push(lastRdMsg);
+  }
   // v7.3: 记忆命中轨迹 —— 轻量记录本轮实际注入内容（只存标签和token估算，随回复消息保存）
   try{
     const _tags=matchTopicMems(msgs).map(t=>t.tags.join('·'));
@@ -3981,6 +4081,7 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
       topics:_tags,
       arc:arcCtx?estimateTokens(arcCtx):0,
       archiveRead:arcRead.report,
+      reading:rdRead.report?.active?{active:true,tok:estimateTokens(rdRead.context),label:rdRead.report.label}:{active:false},
       search:searchContext?estimateTokens(searchContext):0,
       hist:{sent:trimmed.length,total:msgs.length},
       cachePlan,
@@ -4276,12 +4377,22 @@ async function callApi(c,searchContext){
     // v6.8: 隐私小屋不处理记忆提议
     const memProps=c.private?[]:parseMemProposal(msg.content);
     msg.content=stripMemProposals(msg.content);
+    // v7.7.16: 解析并隐藏阅读进度提议标签（隐私小屋同样不弹出写入提议）
+    const rdProps=(!c.private&&typeof parseReadingProposal==='function')?parseReadingProposal(msg.content):[];
+    if(typeof stripReadingProposals==='function')msg.content=stripReadingProposals(msg.content);
     if(lastTrail){msg.trail=lastTrail;lastTrail=null} // v7.3: 轨迹随消息落库
     c.updatedAt=Date.now();saveConv(c);
     // v6.3: 记忆待审队列 — 多条提议逐条显示，不只第一条
     if(memProps.length){
-      pendingMemQueue=memProps.map(p=>({tags:p.tags,content:p.content}));
-      setTimeout(()=>showNextMemProp(),500);
+      pendingMemQueue=pendingMemQueue.concat(memProps.map(p=>({tags:p.tags,content:p.content})));
+    }
+    if(rdProps.length&&typeof enqueueReadingProposals==='function'){
+      enqueueReadingProposals(rdProps);
+    }
+    if(memProps.length){
+      setTimeout(()=>showNextMemProp(),400);
+    }else if(rdProps.length&&typeof showNextReadingProp==='function'){
+      setTimeout(()=>showNextReadingProp(),400);
     }
   }catch(e){
     if(e.name==='AbortError'||e.isVacation){
@@ -4724,6 +4835,8 @@ function importC(inp){
       if(d.anniversaries){anniversaries=d.anniversaries;saveAnni();renderAnniList()}
       // v6.4: 恢复档案馆数据
       if(d.archive){archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],bookmarks:[],...d.archive};saveArchive()}
+      // v7.7.16: 恢复阅读进度（旧备份无此字段时保留现状，兼容不报错）
+      if(d.reading&&typeof importReadingData==='function'){importReadingData(d.reading);}
       convs=d.conversations;if(convs.length)curId=convs[0].id;
       saveConvs();
       alert('✅ 全量数据已导入！共 '+d.conversations.length+' 个对话 🍑');
@@ -4955,7 +5068,7 @@ let arcTab='tree',arcEditIdx=-1,arcFormType='books';
 let arcCalMonth=new Date().getMonth(),arcCalYear=new Date().getFullYear();
 let arcFormStatus='want',arcFormRating=0,arcFormChooser=[];
 
-function saveArchive(){try{localStorage.setItem('ps3_archive',JSON.stringify(archive))}catch(e){}}
+function saveArchive(){try{const raw=JSON.stringify(archive);localStorage.setItem('ps3_archive',raw);if(localStorage.getItem('ps3_archive')!==raw)throw Error('verify failed');return true}catch(e){alert('⚠️ 档案馆保存失败（本地存储可能已满，建议先导出全量备份）🍑');return false}}
 function loadArchive(){try{const r=localStorage.getItem('ps3_archive');if(r){archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],bookmarks:[],...JSON.parse(r)}}}catch(e){}}
 
 function openArchive(){loadArchive();$('arcPage').classList.add('active');arcRender()}
@@ -6786,6 +6899,581 @@ window.addEventListener('online',()=>{
   t.textContent='📶 屁桃星信号回来啦，信号满格🍑✨';
   t.classList.add('show');setTimeout(()=>{t.classList.remove('show');t.textContent='已复制到剪贴板 🍑'},2500);
 });
+
+// ==========================================================
+// v7.7.16: 独立多书阅读进度模块（与屁桃星档案馆 ps3_archive 隔离）
+// 存储键：ps3_reading（自动纳入全量导出/导入，不修改旧档案键）
+// ==========================================================
+const READING_KEY='ps3_reading';
+const READING_DONE_COOLDOWN_MS=7*24*60*60*1000;
+const READING_STATUS_LIST=['want','reading','paused','done'];
+const READING_STATUS_META={
+  want:{label:'想读',icon:'💭',badge:'arc-badge-want'},
+  reading:{label:'在读',icon:'📖',badge:'arc-badge-reading'},
+  paused:{label:'搁置',icon:'⏸️',badge:'arc-badge-paused'},
+  done:{label:'读完',icon:'✅',badge:'arc-badge-done'}
+};
+let readingData={v:1,books:[]};
+let rdTab='reading';
+let rdEditId=null;
+let rdFormStatus='reading';
+let pendingReadingProp=null;
+let pendingReadingQueue=[];
+
+function rdToast(msg){
+  const toast=$('copyToast');if(!toast)return;
+  toast.textContent=msg;toast.classList.add('show');
+  setTimeout(()=>{toast.classList.remove('show');toast.textContent='已复制到剪贴板 🍑'},1800);
+}
+function rdNormStatus(s){
+  const v=String(s||'').trim().toLowerCase();
+  if(['reading','在读','在看','阅读中','正在读','正在看'].includes(v))return 'reading';
+  if(['paused','搁置','暂停','暂缓','弃坑','先放着'].includes(v))return 'paused';
+  if(['done','读完','看完','已读','已看完','完成','已完成'].includes(v))return 'done';
+  if(['want','想读','想看','待读','计划读','已买','买过'].includes(v))return 'want';
+  return '';
+}
+function normalizeReadingBook(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const title=String(raw.title||'').trim().slice(0,160);
+  if(!title)return null;
+  const st=READING_STATUS_LIST.includes(raw.status)?raw.status:(rdNormStatus(raw.status)||'reading');
+  const now=Date.now();
+  const addedAt=Number.isFinite(Number(raw.addedAt))&&Number(raw.addedAt)>0?Number(raw.addedAt):now;
+  const updatedAt=Number.isFinite(Number(raw.updatedAt))&&Number(raw.updatedAt)>0?Number(raw.updatedAt):addedAt;
+  const finishedAt=st==='done'?(Number.isFinite(Number(raw.finishedAt))&&Number(raw.finishedAt)>0?Number(raw.finishedAt):updatedAt):null;
+  const aliases=Array.isArray(raw.aliases)?[...new Set(raw.aliases.map(a=>String(a||'').trim()).filter(Boolean))].slice(0,12):[];
+  return {
+    id:String(raw.id||('rb_'+now.toString(36)+'_'+Math.random().toString(36).slice(2,6))),
+    title,
+    author:String(raw.author||'').trim().slice(0,80),
+    aliases,
+    status:st,
+    progress:String(raw.progress||'').trim().slice(0,120),
+    isFocus:st==='reading'&&!!raw.isFocus,
+    note:String(raw.note||'').trim().slice(0,400),
+    addedAt,
+    updatedAt,
+    finishedAt
+  };
+}
+function loadReading(){
+  try{
+    const raw=localStorage.getItem(READING_KEY);
+    if(!raw){readingData={v:1,books:[]};return readingData}
+    const parsed=JSON.parse(raw);
+    const list=Array.isArray(parsed)?parsed:(Array.isArray(parsed?.books)?parsed.books:[]);
+    readingData={v:1,books:list.map(normalizeReadingBook).filter(Boolean)};
+    // 保证最多只有1本焦点书
+    let seenFocus=false;
+    readingData.books.forEach(b=>{if(b.isFocus&&b.status==='reading'){if(seenFocus)b.isFocus=false;else seenFocus=true}else b.isFocus=false});
+  }catch(e){readingData={v:1,books:[]}}
+  return readingData;
+}
+function saveReading(silent=false){
+  try{
+    const payload=JSON.stringify({v:1,books:readingData.books});
+    localStorage.setItem(READING_KEY,payload);
+    if(localStorage.getItem(READING_KEY)!==payload)throw Error('读取校验不一致');
+    updateReadingBadge();
+    return true;
+  }catch(e){
+    if(!silent)alert('⚠️ 阅读进度保存失败（本地存储可能已满，建议先导出全量备份）🍑');
+    return false;
+  }
+}
+function getReadingExportData(){loadReading();return {v:1,books:readingData.books}}
+function importReadingData(raw){
+  const list=Array.isArray(raw)?raw:(Array.isArray(raw?.books)?raw.books:[]);
+  const prev=JSON.parse(JSON.stringify(readingData));
+  readingData={v:1,books:list.map(normalizeReadingBook).filter(Boolean)};
+  if(!saveReading(true)){readingData=prev;return false}
+  updateReadingBadge();
+  return true;
+}
+function updateReadingBadge(){
+  const btn=$('readingEntryBtn');if(!btn)return;
+  const readingCount=(readingData.books||[]).filter(b=>b.status==='reading').length;
+  btn.textContent=readingCount?`📖 阅读进度 · 在读 ${readingCount}`:'📖 阅读进度';
+}
+function rdBookAliases(book){
+  const list=[book.title,...String(book.title||'').split(/[／/：:]/),...(book.aliases||[])];
+  return [...new Set(list.map(arcNorm).filter(s=>s.length>=2))];
+}
+function getReadingState(now=Date.now()){
+  loadReading();
+  const books=readingData.books||[];
+  const sortByRecent=(a,b)=>(b.isFocus?1:0)-(a.isFocus?1:0)||(b.updatedAt||0)-(a.updatedAt||0);
+  const reading=books.filter(b=>b.status==='reading').sort(sortByRecent);
+  const paused=books.filter(b=>b.status==='paused').sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const want=books.filter(b=>b.status==='want').sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const allDone=books.filter(b=>b.status==='done').sort((a,b)=>(b.finishedAt||b.updatedAt||0)-(a.finishedAt||a.updatedAt||0));
+  const recentDone=allDone.filter(b=>now-(b.finishedAt||b.updatedAt||0)<=READING_DONE_COOLDOWN_MS);
+  const focusBook=reading.find(b=>b.isFocus)||null;
+  return {
+    books,
+    focusBook,
+    reading,
+    paused,
+    want,
+    recentDone,
+    allDone,
+    counts:{reading:reading.length,paused:paused.length,want:want.length,done:allDone.length,all:books.length}
+  };
+}
+function searchReadingHistory(query,opts={}){
+  const includeArchive=opts.includeArchive!==false;
+  const q=arcNorm(query);
+  loadReading();
+  const readingHits=[];
+  for(const b of readingData.books){
+    if(!q){readingHits.push({source:'reading',matchType:'all',book:b});continue}
+    const aliases=rdBookAliases(b);
+    const authorN=arcNorm(b.author);
+    if(arcNorm(b.title)===q||aliases.includes(q))readingHits.push({source:'reading',matchType:'exact',book:b});
+    else if(aliases.some(a=>a.includes(q)||q.includes(a))||(authorN&&authorN.includes(q)))readingHits.push({source:'reading',matchType:'fuzzy',book:b});
+  }
+  const archiveHits=[];
+  if(includeArchive){
+    loadArchive();
+    for(const item of (archive.books||[])){
+      if(!q){archiveHits.push({source:'archive',matchType:'all',item});continue}
+      const aliases=arcAliases(item);
+      const authorN=arcNorm(item.author);
+      if(arcNorm(item.title)===q||aliases.includes(q))archiveHits.push({source:'archive',matchType:'exact',item});
+      else if(aliases.some(a=>a.includes(q)||q.includes(a))||(authorN&&authorN.includes(q)))archiveHits.push({source:'archive',matchType:'fuzzy',item});
+    }
+  }
+  return {readingHits,archiveHits};
+}
+function rdFindBookCandidates(titleOrQuery){
+  const q=arcNorm(titleOrQuery);
+  if(!q)return {exact:[],fuzzy:[]};
+  const exact=[],fuzzy=[];
+  for(const b of readingData.books){
+    const aliases=rdBookAliases(b);
+    if(arcNorm(b.title)===q||aliases.includes(q))exact.push(b);
+    else if(aliases.some(a=>a.includes(q)||q.includes(a)))fuzzy.push(b);
+  }
+  return {exact,fuzzy};
+}
+function updateReadingState(payload){
+  if(!payload||typeof payload!=='object')return {ok:false,error:'缺少更新内容'};
+  loadReading();
+  const prevSnapshot=JSON.parse(JSON.stringify(readingData));
+  let target=null;
+  if(payload.id){
+    target=readingData.books.find(b=>b.id===payload.id)||null;
+    if(!target)return {ok:false,error:'未找到对应书籍记录'};
+  }else if(payload.title){
+    const {exact,fuzzy}=rdFindBookCandidates(payload.title);
+    if(exact.length===1)target=exact[0];
+    else if(exact.length>1)return {ok:false,ambiguous:true,candidates:exact,error:'存在多本同名记录，请先确认具体哪一本'};
+    else if(fuzzy.length===1&&!payload.forceNew)target=fuzzy[0];
+    else if(fuzzy.length>1&&!payload.forceNew)return {ok:false,ambiguous:true,candidates:fuzzy,error:'书名匹配到多本记录，请先确认具体哪一本'};
+  }
+  const now=Date.now();
+  const nextStatus=payload.status?rdNormStatus(payload.status):(target?target.status:'reading');
+  if(!READING_STATUS_LIST.includes(nextStatus))return {ok:false,error:'无效的阅读状态'};
+  let action='updated';
+  if(target){
+    if(payload.title&&String(payload.title).trim())target.title=String(payload.title).trim().slice(0,160);
+    if(payload.author!==undefined)target.author=String(payload.author||'').trim().slice(0,80);
+    if(Array.isArray(payload.aliases))target.aliases=[...new Set(payload.aliases.map(a=>String(a||'').trim()).filter(Boolean))].slice(0,12);
+    target.status=nextStatus;
+    if(payload.progress!==undefined&&payload.progress!==null)target.progress=String(payload.progress).trim().slice(0,120);
+    if(payload.note!==undefined&&payload.note!==null)target.note=String(payload.note).trim().slice(0,400);
+    target.updatedAt=now;
+    if(nextStatus==='done'){
+      target.finishedAt=target.finishedAt||now;
+      target.isFocus=false;
+    }else{
+      target.finishedAt=null;
+      if(payload.isFocus===true&&nextStatus==='reading'){
+        readingData.books.forEach(b=>{b.isFocus=(b.id===target.id)});
+      }else if(payload.isFocus===false||nextStatus!=='reading'){
+        target.isFocus=false;
+      }
+    }
+  }else{
+    const title=String(payload.title||'').trim().slice(0,160);
+    if(!title)return {ok:false,error:'请填写书名'};
+    const book=normalizeReadingBook({
+      title,
+      author:payload.author||'',
+      aliases:payload.aliases||[],
+      status:nextStatus,
+      progress:payload.progress||'',
+      isFocus:nextStatus==='reading'&&payload.isFocus===true,
+      note:payload.note||'',
+      addedAt:now,
+      updatedAt:now,
+      finishedAt:nextStatus==='done'?now:null
+    });
+    if(book.isFocus)readingData.books.forEach(b=>{b.isFocus=false});
+    readingData.books.push(book);
+    target=book;
+    action='created';
+  }
+  if(!saveReading(true)){
+    readingData=prevSnapshot;
+    return {ok:false,error:'本地持久化失败（存储可能已满），未写入'};
+  }
+  return {ok:true,action,book:target};
+}
+function finishBook(idOrTitle,opts={}){
+  loadReading();
+  const byId=readingData.books.find(b=>b.id===idOrTitle);
+  const payload=byId?{id:byId.id,status:'done',isFocus:false,...opts}:{title:String(idOrTitle||''),status:'done',isFocus:false,...opts};
+  return updateReadingState(payload);
+}
+
+// ---------- 按需上下文注入（绝不打碎缓存；读完7天内保留、超7天退居后台） ----------
+function buildReadingContext(text,now=Date.now()){
+  const raw=String(text||'').trim();
+  if(!raw)return {context:'',report:{active:false}};
+  const t=arcNorm(raw);
+  // 尊重显式不查指令
+  if(/(?:不要|不用|别|不必|无需|暂不)[^。！？!?]{0,10}(?:查阅读|查书桌|查档|阅读进度)/.test(t))return {context:'',report:{active:false}};
+  const st=getReadingState(now);
+  const recIntent=/推书|荐书|书荒|推荐.{0,8}书|有什么.{0,6}书.{0,6}(?:看|读)|没读过|没看过.{0,4}书|避开.{0,6}(?:读过|看过)|读过哪些书|看过哪些书|已读书单|阅读历史|阅读记录/.test(raw);
+  const explicitReadCue=/看书|读书|阅读|读到|看到第|第\s*\d+\s*[页章回节]|百分比|\d+\s*%|新书|在读|在看的书|看完.{0,4}书|读完|刚看完|刚刚看完|那本书|这本书|换本书|换本看|继续读|继续看书|搁置|书桌|阅读进度|书进度/.test(raw);
+  const nonBookOnly=/看电影|看剧|看综艺|看动漫|看番|看视频|看星星|看医生|看地图|看诊|看病/.test(raw)&&!explicitReadCue&&!recIntent;
+  // 也检测是否直接提到了当前在读 / 搁置 / 近7天刚读完的书名或别名
+  const activePool=[...st.reading,...st.paused,...st.recentDone];
+  const mentionedBook=activePool.some(b=>rdBookAliases(b).some(a=>a.length>=2&&t.includes(a)));
+  if(!recIntent&&(!explicitReadCue&&!mentionedBook||nonBookOnly)){
+    return {context:'',report:{active:false}};
+  }
+  const fmtBook=(b,extra='')=>{
+    const parts=[`《${b.title}》`];
+    if(b.author)parts.push(`作者:${b.author}`);
+    if(b.progress)parts.push(`进度:${b.progress}`);
+    if(b.isFocus)parts.push('★当前焦点');
+    if(extra)parts.push(extra);
+    if(b.note)parts.push(`备注:${b.note.slice(0,60)}`);
+    return '- '+parts.join('｜');
+  };
+  const lines=['[📖 屁桃星阅读进度（独立于档案馆，按需同步）]'];
+  if(st.focusBook)lines.push('当前焦点读物：'+fmtBook(st.focusBook).slice(2));
+  if(st.reading.length){
+    lines.push('【正在读（多本独立）】');
+    st.reading.forEach(b=>lines.push(fmtBook(b)));
+  }else{
+    lines.push('【正在读】目前还没有登记在读书籍。');
+  }
+  if(st.paused.length){
+    lines.push('【暂时搁置】');
+    st.paused.slice(0,10).forEach(b=>lines.push(fmtBook(b)));
+  }
+  if(st.recentDone.length){
+    lines.push('【近7天刚读完（冷却期内保留，方便回味聊天）】');
+    st.recentDone.slice(0,8).forEach(b=>{
+      const d=new Date(b.finishedAt||b.updatedAt);
+      lines.push(fmtBook(b,`完成于${d.getMonth()+1}月${d.getDate()}日`));
+    });
+  }
+  if(recIntent){
+    // 合并阅读进度中的全部已读 + 档案馆中明确标为已读/在读的书（不把签名藏书/想读误判为已读）
+    loadArchive();
+    const doneSet=new Set();
+    const readingSet=new Set();
+    st.allDone.forEach(b=>doneSet.add(b.title));
+    st.reading.forEach(b=>readingSet.add(b.title));
+    st.paused.forEach(b=>readingSet.add(b.title));
+    (archive.books||[]).forEach(item=>{
+      if(!item?.title)return;
+      if(item.status==='done')doneSet.add(item.title);
+      else if(item.status==='reading')readingSet.add(item.title);
+    });
+    const doneTitles=[...doneSet];
+    const activeTitles=[...readingSet];
+    lines.push('【荐书排重清单（按需附送，仅含明确已读/在读，签名藏书≠已读）】');
+    lines.push('已读完：'+(doneTitles.length?doneTitles.slice(0,120).join('、'):'暂无'));
+    if(activeTitles.length)lines.push('在读/搁置中：'+activeTitles.slice(0,40).join('、'));
+  }
+  lines.push(
+    '【阅读进度协作规则】',
+    '1. Yoru常同时读多本书，每本进度完全独立，切勿混淆；若她只说“去看书啦”，可自然问是继续看哪本在读书还是开新书。',
+    '2. 区分“买过/想读/在读/搁置/读完”，不可因提到书名就擅自判为读完；若书名、章节或进度有歧义（例如同时读多本却未说明哪本），先向Yoru确认，暂不输出更新标签。',
+    '3. 当Yoru明确告知开了新书、更新进度、搁置或读完且无歧义时，在回复末尾附加隐藏提议标签（页面会自动隐藏并弹出底部确认条）：',
+    '   [阅读进度|书名=完整书名|状态=在读/搁置/想读/读完|进度=页码或百分比或章节|焦点=是/否|备注=可选短备注]',
+    '4. 重要：附加标签后，本地尚未写入，必须等Yoru点击底部“确认保存”才算持久化成功；回复中请说“已准备好阅读进度记录，点下方确认即可保存”，不可提前宣称“已写入本地”。'
+  );
+  const label=recIntent?'当前书桌 + 荐书排重':(st.reading.length||st.recentDone.length?`当前书桌（在读${st.reading.length}·近7天读完${st.recentDone.length}）`:'当前书桌（空）');
+  return {context:lines.join('\n'),report:{active:true,recIntent,label}};
+}
+
+// ---------- 回复中的 [阅读进度|...] 提议解析与隐藏 ----------
+function parseReadingProposal(text){
+  const raw=String(text||'');
+  const re=/\[阅读进度[|｜]([^\]]+)\]/g;
+  const out=[];let m;
+  while((m=re.exec(raw))!==null){
+    const body=m[1];
+    const obj={title:'',status:'',progress:'',isFocus:undefined,note:'',author:'',raw:m[0]};
+    body.split(/[|｜]/).forEach(seg=>{
+      const idx=seg.search(/[=＝:：]/);
+      if(idx<0)return;
+      const k=seg.slice(0,idx).trim();
+      const v=seg.slice(idx+1).trim();
+      if(['书名','title','名称'].includes(k))obj.title=v;
+      else if(['作者','author'].includes(k))obj.author=v;
+      else if(['状态','status'].includes(k))obj.status=rdNormStatus(v)||'';
+      else if(['进度','progress'].includes(k))obj.progress=v;
+      else if(['焦点','focus','当前焦点'].includes(k))obj.isFocus=/^(是|true|1|yes|设为焦点)$/i.test(v)?true:(/^(否|false|0|no)$/i.test(v)?false:undefined);
+      else if(['备注','note'].includes(k))obj.note=v;
+    });
+    if(obj.title)out.push(obj);
+  }
+  return out;
+}
+function stripReadingProposals(text){
+  return String(text||'').replace(/\s*\[阅读进度[|｜][^\]]+\]\s*/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function enqueueReadingProposals(list){
+  if(!Array.isArray(list)||!list.length)return;
+  pendingReadingQueue=pendingReadingQueue.concat(list);
+}
+function showNextReadingProp(){
+  // 排队：避免与记忆提议条重叠
+  if($('memProposal')&&$('memProposal').style.display==='block')return;
+  if(!pendingReadingQueue.length){if($('readingProposal'))$('readingProposal').style.display='none';pendingReadingProp=null;return}
+  const next=pendingReadingQueue.shift();
+  pendingReadingProp=next;
+  loadReading();
+  const {exact,fuzzy}=rdFindBookCandidates(next.title);
+  const existing=exact.length===1?exact[0]:(fuzzy.length===1?fuzzy[0]:null);
+  const stCode=next.status||(existing?existing.status:'reading');
+  const stMeta=READING_STATUS_META[stCode]||READING_STATUS_META.reading;
+  const verb=existing?'更新':'新增';
+  const metaParts=[`${stMeta.icon} ${stMeta.label}`];
+  if(next.progress)metaParts.push('进度：'+next.progress);
+  if(next.isFocus===true)metaParts.push('⭐ 设为焦点');
+  if(pendingReadingQueue.length)metaParts.push(`还有${pendingReadingQueue.length}条待确认`);
+  $('rdPropText').textContent=`📖 ${verb}阅读进度：《${existing?existing.title:next.title}》`;
+  $('rdPropMeta').textContent=metaParts.join(' · ');
+  $('readingProposal').style.display='block';
+  // 永不自动消失，等待Yoru亲自确认或取消
+}
+function acceptReadingProp(){
+  if(!pendingReadingProp)return;
+  const p=pendingReadingProp;
+  const res=updateReadingState({
+    title:p.title,
+    author:p.author||undefined,
+    status:p.status||undefined,
+    progress:p.progress||undefined,
+    isFocus:p.isFocus,
+    note:p.note||undefined
+  });
+  if(!res.ok){
+    if(res.ambiguous&&res.candidates?.length){
+      const names=res.candidates.map((b,i)=>`${i+1}. 《${b.title}》（${READING_STATUS_META[b.status]?.label||b.status}${b.progress?' · '+b.progress:''}）`).join('\n');
+      const pick=prompt(`书名「${p.title}」匹配到多本记录，请输入序号确认（留空取消）：\n\n${names}`);
+      const idx=parseInt(pick,10)-1;
+      if(Number.isFinite(idx)&&res.candidates[idx]){
+        const res2=updateReadingState({
+          id:res.candidates[idx].id,
+          status:p.status||undefined,
+          progress:p.progress||undefined,
+          isFocus:p.isFocus,
+          note:p.note||undefined
+        });
+        if(!res2.ok){alert('⚠️ '+res2.error);return}
+        $('readingProposal').style.display='none';pendingReadingProp=null;
+        rdToast(`📖 已保存《${res2.book.title}》进度🍑`);
+        if($('readingPage')?.classList.contains('active'))renderReading();
+        setTimeout(()=>{if(pendingReadingQueue.length)showNextReadingProp();else showNextMemProp()},250);
+        return;
+      }
+      return;
+    }
+    alert('⚠️ '+res.error);
+    return;
+  }
+  $('readingProposal').style.display='none';
+  pendingReadingProp=null;
+  rdToast(`📖 ${res.action==='created'?'已登记':'已更新'}《${res.book.title}》🍑`);
+  if($('readingPage')?.classList.contains('active'))renderReading();
+  setTimeout(()=>{if(pendingReadingQueue.length)showNextReadingProp();else showNextMemProp()},250);
+}
+function dismissReadingProp(){
+  $('readingProposal').style.display='none';
+  pendingReadingProp=null;
+  setTimeout(()=>{if(pendingReadingQueue.length)showNextReadingProp();else showNextMemProp()},250);
+}
+
+// ---------- 独立「📖 阅读进度」页面 UI ----------
+function openReading(){
+  loadReading();
+  updateReadingBadge();
+  $('readingPage').classList.add('active');
+  renderReading();
+}
+function closeReading(){$('readingPage').classList.remove('active')}
+function rdSwitchTab(tab,btn){
+  rdTab=tab;
+  document.querySelectorAll('#rdTabs .arc-tab').forEach(t=>t.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderReading();
+}
+function renderReading(){
+  const body=$('readingBody');if(!body)return;
+  const st=getReadingState();
+  // 更新标签计数
+  document.querySelectorAll('#rdTabs .arc-tab').forEach(b=>{
+    const k=b.dataset.rdtab;
+    const base={reading:'📖 在读',paused:'⏸️ 搁置',want:'💭 想读',done:'✅ 读完',all:'📚 全部'}[k]||k;
+    const n=st.counts[k]||0;
+    b.textContent=n?`${base}(${n})`:base;
+  });
+  const q=arcNorm($('rdSearch')?.value||'');
+  let list=rdTab==='all'?[...st.reading,...st.paused,...st.want,...st.allDone]:(st[rdTab==='done'?'allDone':rdTab]||[]);
+  if(q){
+    list=list.filter(b=>rdBookAliases(b).some(a=>a.includes(q))||arcNorm(b.author).includes(q));
+  }
+  let h=`<button class="arc-add-btn" onclick="openReadingForm(null)">＋ 添加书籍进度</button>`;
+  if(!list.length){
+    h+=`<div class="arc-empty"><span>📖</span>${q?'没有找到匹配的书籍～':'这一栏还没有书籍记录～<br>点上方添加，或在聊天里告诉屁屁你在读什么书🍑'}</div>`;
+    body.innerHTML=h;return;
+  }
+  const now=Date.now();
+  list.forEach(b=>{
+    const sm=READING_STATUS_META[b.status]||READING_STATUS_META.reading;
+    const focusTag=b.isFocus?'<span class="rd-focus-badge">⭐ 当前焦点</span>':'';
+    const recentTag=(b.status==='done'&&now-(b.finishedAt||b.updatedAt||0)<=READING_DONE_COOLDOWN_MS)?'<span class="rd-focus-badge">✨ 近7天刚读完</span>':'';
+    const progHtml=b.progress?`<span class="rd-prog-pill">📍 ${esc(b.progress)}</span>`:'';
+    const updDate=new Date(b.updatedAt||b.addedAt).toLocaleDateString('zh-CN');
+    const noteHtml=b.note?`<div class="arc-card-note">${esc(b.note)}</div>`:'';
+    const quickBtns=[];
+    if(b.status==='reading'&&!b.isFocus)quickBtns.push(`<button class="rd-qbtn" onclick="rdSetFocus('${esc(b.id)}')">⭐ 设为焦点</button>`);
+    if(b.status==='reading'||b.status==='paused')quickBtns.push(`<button class="rd-qbtn" onclick="rdQuickProgress('${esc(b.id)}')">📝 更新进度</button>`);
+    if(b.status==='reading')quickBtns.push(`<button class="rd-qbtn" onclick="rdQuickPause('${esc(b.id)}')">⏸️ 搁置</button>`);
+    if(b.status==='reading'||b.status==='paused')quickBtns.push(`<button class="rd-qbtn" onclick="rdQuickFinish('${esc(b.id)}')">✅ 标为读完</button>`);
+    if(b.status==='paused'||b.status==='want'||b.status==='done')quickBtns.push(`<button class="rd-qbtn" onclick="rdQuickResume('${esc(b.id)}')">📖 设为在读</button>`);
+    if(b.status==='done')quickBtns.push(`<button class="rd-qbtn" onclick="rdCopyToArchive('${esc(b.id)}')">📦 归档到档案馆</button>`);
+    h+=`<div class="arc-card">
+      <div class="arc-card-acts"><button onclick="openReadingForm('${esc(b.id)}')" title="编辑">✏️</button><button onclick="rdDelete('${esc(b.id)}')" title="删除">🗑️</button></div>
+      <div class="arc-card-title">${esc(b.title)}${focusTag}${recentTag}</div>
+      <div class="arc-card-sub">${b.author?esc(b.author):''}</div>
+      <div class="arc-card-meta"><span class="arc-card-badge ${sm.badge}">${sm.icon} ${sm.label}</span>${progHtml}<span>更新于 ${esc(updDate)}</span></div>
+      ${noteHtml}
+      <div class="rd-quick-acts">${quickBtns.join('')}</div>
+    </div>`;
+  });
+  body.innerHTML=h;
+}
+function openReadingForm(id){
+  loadReading();
+  rdEditId=id||null;
+  const book=rdEditId?readingData.books.find(b=>b.id===rdEditId):null;
+  $('rdFormTitle').textContent=book?'📖 编辑阅读进度':'📖 添加阅读进度';
+  $('rdFTitle').value=book?book.title:'';
+  $('rdFAuthor').value=book?book.author:'';
+  $('rdFAliases').value=book?(book.aliases||[]).join(', '):'';
+  $('rdFProgress').value=book?book.progress:'';
+  $('rdFNote').value=book?book.note:'';
+  rdFormStatus=book?book.status:(rdTab==='all'?'reading':rdTab);
+  $('rdFFocus').checked=book?!!book.isFocus:(rdFormStatus==='reading'&&!readingData.books.some(b=>b.isFocus));
+  rdUpdateFormUI();
+  $('readingFormOv').classList.add('active');
+  $('rdFTitle').focus();
+}
+function rdSetFormStatus(st){
+  rdFormStatus=st;
+  if(st!=='reading')$('rdFFocus').checked=false;
+  rdUpdateFormUI();
+}
+function rdUpdateFormUI(){
+  document.querySelectorAll('#rdFStatusBtns .arc-status-btn').forEach(b=>{
+    b.classList.toggle('active',b.dataset.st===rdFormStatus);
+  });
+  $('rdFFocus').disabled=rdFormStatus!=='reading';
+}
+function closeReadingForm(){$('readingFormOv').classList.remove('active');rdEditId=null}
+function saveReadingForm(){
+  const title=$('rdFTitle').value.trim();
+  if(!title){alert('请填写书名🍑');return}
+  const aliases=$('rdFAliases').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+  const res=updateReadingState({
+    id:rdEditId||undefined,
+    title,
+    author:$('rdFAuthor').value.trim(),
+    aliases,
+    status:rdFormStatus,
+    progress:$('rdFProgress').value.trim(),
+    isFocus:rdFormStatus==='reading'&&$('rdFFocus').checked,
+    note:$('rdFNote').value.trim(),
+    forceNew:!rdEditId
+  });
+  if(!res.ok){alert('⚠️ '+res.error);return}
+  closeReadingForm();
+  renderReading();
+  rdToast('📖 阅读进度已保存🍑');
+}
+function rdSetFocus(id){
+  const res=updateReadingState({id,status:'reading',isFocus:true});
+  if(!res.ok){alert('⚠️ '+res.error);return}
+  renderReading();rdToast(`⭐ 已将《${res.book.title}》设为当前焦点🍑`);
+}
+function rdQuickProgress(id){
+  loadReading();
+  const b=readingData.books.find(x=>x.id===id);if(!b)return;
+  const val=prompt(`更新《${b.title}》的当前进度（支持页码、百分比或章节）：`,b.progress||'');
+  if(val===null)return;
+  const res=updateReadingState({id,progress:val.trim()});
+  if(!res.ok){alert('⚠️ '+res.error);return}
+  renderReading();rdToast('📖 进度已更新🍑');
+}
+function rdQuickPause(id){
+  const res=updateReadingState({id,status:'paused',isFocus:false});
+  if(!res.ok){alert('⚠️ '+res.error);return}
+  renderReading();rdToast(`⏸️ 已暂搁《${res.book.title}》，原进度已保留🍑`);
+}
+function rdQuickFinish(id){
+  const res=finishBook(id);
+  if(!res.ok){alert('⚠️ '+res.error);return}
+  renderReading();rdToast(`✅ 《${res.book.title}》已标为读完（7天内仍可聊起）🍑`);
+}
+function rdQuickResume(id){
+  const res=updateReadingState({id,status:'reading',isFocus:true});
+  if(!res.ok){alert('⚠️ '+res.error);return}
+  renderReading();rdToast(`📖 已恢复阅读《${res.book.title}》🍑`);
+}
+function rdDelete(id){
+  loadReading();
+  const idx=readingData.books.findIndex(b=>b.id===id);if(idx<0)return;
+  const b=readingData.books[idx];
+  if(!confirm(`删除《${b.title}》的阅读进度记录吗？\n（不会影响屁桃星档案馆中的旧记录）`))return;
+  const prev=JSON.parse(JSON.stringify(readingData));
+  readingData.books.splice(idx,1);
+  if(!saveReading(true)){readingData=prev;alert('⚠️ 删除失败，本地存储校验未通过');return}
+  renderReading();rdToast('🗑️ 已删除阅读记录');
+}
+function rdCopyToArchive(id){
+  loadReading();loadArchive();
+  const b=readingData.books.find(x=>x.id===id);if(!b)return;
+  const dup=(archive.books||[]).find(x=>arcNorm(x.title)===arcNorm(b.title));
+  const msg=dup?`档案馆里已有《${dup.title}》，仍要另存一条新的已读档案吗？（绝不覆盖原卡）`:`把《${b.title}》复制一份到「屁桃星档案馆 → 我的阅读」吗？`;
+  if(!confirm(msg))return;
+  archive.books=archive.books||[];
+  archive.books.push({
+    title:b.title,
+    author:b.author||'',
+    aliases:b.aliases||[],
+    year:String(new Date(b.finishedAt||Date.now()).getFullYear()),
+    status:'done',
+    rating:0,
+    progress:b.progress||'',
+    note:b.note||'',
+    shelves:['reading'],
+    versions:'',
+    addedAt:Date.now()
+  });
+  if(saveArchive())rdToast(`📦 已归档《${b.title}》到档案馆🍑`);
+}
+
 </script>
 </body>
 </html>

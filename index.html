@@ -359,6 +359,37 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 /* v7.9.0: 发图压缩仅留缩略图开关条 */
 .att-slim-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid var(--border-warm);background:rgba(255,255,255,.04);color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit;align-self:center;white-space:nowrap}
 .att-slim-pill.on{border-color:var(--pink);background:rgba(232,160,191,.16);color:var(--gold)}
+
+/* v7.9.1: 侧边栏快捷入口、金句墙、档案馆搜索与晚安故事书架 */
+.sb-quick-row{display:flex;gap:6px;padding:0 12px 8px}
+.sb-quick-btn{flex:1;padding:7px 8px;border-radius:10px;border:1px solid var(--border);background:rgba(232,160,191,.07);color:var(--gold);font-size:11.5px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
+.sb-quick-btn:active{background:rgba(232,160,191,.18);border-color:var(--pink)}
+.sb-quick-badge{font-size:10px;padding:1px 5px;border-radius:999px;background:rgba(232,160,191,.2);color:var(--pink)}
+.v791-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.v791-chip{padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--soft);font-size:11.5px;cursor:pointer;font-family:inherit}
+.v791-chip.active{border-color:var(--pink);background:rgba(232,160,191,.18);color:var(--gold)}
+.arc-search-wrap{padding:6px 12px 8px;border-bottom:1px solid rgba(255,255,255,.05)}
+.arc-search-row{display:flex;gap:6px;align-items:center}
+.arc-search-clear{padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--soft);font-size:12px;cursor:pointer;font-family:inherit}
+.arc-cat-pill{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:999px;background:rgba(232,160,191,.15);color:var(--pink);margin-bottom:5px}
+.arc-hl,mark.v791-hl{background:rgba(246,193,119,.32);color:var(--gold);padding:0 2px;border-radius:3px}
+.quote-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.quote-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:11.5px;color:var(--soft)}
+.quote-conv{color:var(--pink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.quote-body{font-size:13.5px;color:var(--gold);line-height:1.6;white-space:pre-wrap;word-break:break-word;cursor:pointer}
+.quote-body.clamped{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.quote-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.quote-acts button{padding:4px 9px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit}
+.quote-acts button:active{border-color:var(--pink);color:var(--gold)}
+.story-stats{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-radius:12px;background:rgba(232,160,191,.09);border:1px solid rgba(232,160,191,.22);margin-bottom:8px;font-size:12px;color:var(--gold)}
+.story-num-badge{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(232,160,191,.2);color:var(--pink);font-size:11px;font-weight:600;margin-right:6px}
+.story-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:10px;cursor:pointer}
+.story-card-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px}
+.story-card-title{font-size:14px;font-weight:600;color:var(--gold);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.story-card-preview{font-size:12.5px;color:var(--soft);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.story-reader-body{max-height:58vh;overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:14px;line-height:1.75;color:var(--gold);white-space:pre-wrap;word-break:break-word;padding:10px 2px}
+.gsearch-filters{display:flex;gap:6px;flex-wrap:wrap;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02)}
+
 /* v7.9.0: 阅读进度时间模式按钮 */
 .rd-date-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
 .rd-date-chip{padding:6px 10px;border-radius:10px;border:1px solid var(--border-warm);background:rgba(255,255,255,.03);color:var(--soft);font-size:12px;cursor:pointer;font-family:inherit}
@@ -911,12 +942,17 @@ body.smode .smode-badge{display:inline}
    <button style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit" onclick="createFolder()">📁 新建文件夹</button>
    <button style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit" onclick="toggleFolderEdit()">✏️</button>
   </div>
+  <div class="sb-quick-row">
+   <button class="sb-quick-btn" onclick="closeSB();openGlobalSearch()">🔍 搜全部对话</button>
+   <button class="sb-quick-btn" onclick="closeSB();openQuotesWall()">⭐ 金句墙<span class="sb-quick-badge" id="sbQuoteBadge" style="display:none">0</span></button>
+  </div>
   <div class="sb-list" id="sbList"></div>
   <div class="sb-foot">
    <div class="storage-bar" id="storageBar">
     <div class="storage-label" id="storageLabel">存储：计算中…</div>
     <div class="storage-track"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
    </div>
+   <button class="sb-foot-btn" id="storyEntryBtn" style="margin-bottom:6px" onclick="closeSB();openStoryShelf()">🌙 晚安故事书架</button>
    <button class="sb-foot-btn" id="readingEntryBtn" style="margin-bottom:6px" onclick="closeSB();openReading()">📖 阅读进度</button>
    <button class="sb-foot-btn" style="margin-bottom:6px" onclick="closeSB();openArchive()">🍑 屁桃星档案馆</button>
    <button class="sb-foot-btn" onclick="backToSettings()">⚙️ 全局设置</button>
@@ -1178,7 +1214,13 @@ body.smode .smode-badge{display:inline}
 <div class="gsearch-ov" id="gsearchOv">
  <div class="gsearch-head">
   <button onclick="closeGlobalSearch()">←</button>
-  <input type="text" id="gsearchInput" placeholder="搜索所有对话…" oninput="doGlobalSearch()">
+  <input type="text" id="gsearchInput" placeholder="搜索全部对话（空格可搜多个词）…" oninput="doGlobalSearch()">
+ </div>
+ <div class="gsearch-filters" id="gsearchFilters">
+  <button class="v791-chip active" data-gsf="all" onclick="setGSearchFilter('all',this)">全部</button>
+  <button class="v791-chip" data-gsf="assistant" onclick="setGSearchFilter('assistant',this)">🍑 屁屁</button>
+  <button class="v791-chip" data-gsf="user" onclick="setGSearchFilter('user',this)">🌙 Yoru</button>
+  <button class="v791-chip" data-gsf="bookmarked" onclick="setGSearchFilter('bookmarked',this)">⭐ 仅看金句</button>
  </div>
  <div class="gsearch-body" id="gsearchBody">
   <div class="gsearch-info">🔍 输入关键词搜索全部对话历史</div>
@@ -1259,7 +1301,8 @@ body.smode .smode-badge{display:inline}
   <button class="m-item" onclick="closeMenu();openFolderMove()">📁 移动到文件夹</button>
   <button class="m-item" onclick="closeMenu();startCfm('regen')">🔄 重新生成屁屁最后回复</button>
   <button class="m-item" onclick="closeMenu();genSummary()">📝 生成对话摘要</button>
-  <button class="m-item" onclick="closeMenu();viewBookmarks()">⭐ 查看书签消息</button>
+  <button class="m-item" onclick="closeMenu();openQuotesWall()">⭐ 金句收藏夹</button>
+  <button class="m-item" onclick="closeMenu();openStoryShelf()">🌙 晚安故事书架</button>
   <button class="m-item" onclick="closeMenu();showContextPreview()">📋 查看本轮发送内容</button>
   <button class="m-item" onclick="closeMenu();openGlobalSearch()">🔍 搜索全部对话</button>
   <button class="m-item" onclick="closeMenu();showCacheDebug()">🔧 缓存调试面板</button>
@@ -1444,6 +1487,94 @@ body.smode .smode-badge{display:inline}
  </div>
 </div>
 
+
+<!-- v7.9.1: GOLDEN QUOTES WALL PAGE -->
+<div class="archive-page" id="quotesPage">
+ <div class="arc-head">
+  <button class="arc-back" onclick="closeQuotesWall()">←</button>
+  <div class="arc-title">⭐ 金句收藏夹</div>
+ </div>
+ <div style="padding:8px 12px 6px;border-bottom:1px solid rgba(255,255,255,.05)">
+  <input class="inp rd-search" id="quotesSearch" placeholder="🔍 搜索收藏的金句、书评或对话标题…" oninput="renderQuotesWall()">
+  <div class="v791-chips" id="quotesScopeChips">
+   <button class="v791-chip active" data-qscope="all" onclick="setQuotesScope('all',this)">✨ 全部对话</button>
+   <button class="v791-chip" data-qscope="cur" onclick="setQuotesScope('cur',this)">💬 当前对话</button>
+   <button class="v791-chip" data-qrole="all" onclick="cycleQuotesRole(this)" id="quotesRoleBtn">👥 全部发言</button>
+  </div>
+ </div>
+ <div class="arc-body" id="quotesBody"></div>
+</div>
+
+<!-- v7.9.1: BEDTIME STORY BOOKSHELF PAGE -->
+<div class="archive-page" id="storyPage">
+ <div class="arc-head">
+  <button class="arc-back" onclick="closeStoryShelf()">←</button>
+  <div class="arc-title">🌙 晚安故事专属书架</div>
+ </div>
+ <div style="padding:8px 12px 6px;border-bottom:1px solid rgba(255,255,255,.05)">
+  <div class="story-stats" id="storyStatsBar"></div>
+  <input class="inp rd-search" id="storySearch" placeholder="🔍 搜索故事标题、编号或正文…" oninput="renderStoryShelf()">
+  <div class="v791-chips" id="storyFilterChips">
+   <button class="v791-chip active" data-sf="all" onclick="setStoryFilter('all',this)">🌙 全部故事</button>
+   <button class="v791-chip" data-sf="fav" onclick="setStoryFilter('fav',this)">⭐ 特别喜欢</button>
+   <button class="v791-chip" onclick="openStoryForm(-1)">＋ 手动收录 / 补录</button>
+   <button class="v791-chip" onclick="editStoryBaseNum()">🔢 调整当前编号</button>
+  </div>
+ </div>
+ <div class="arc-body" id="storyBody"></div>
+</div>
+
+<!-- v7.9.1: STORY READER OVERLAY -->
+<div class="ov" id="storyReaderOv" onclick="if(event.target===this)closeStoryReader()">
+ <div class="ov-box" style="max-width:460px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+   <h3 id="storyReaderTitle" style="margin:0;flex:1"></h3>
+   <button class="v791-chip" id="storyReaderFavBtn" onclick="toggleCurrentStoryFav()">☆</button>
+  </div>
+  <div id="storyReaderMeta" style="font-size:11.5px;color:var(--soft);margin-bottom:8px"></div>
+  <div class="story-reader-body" id="storyReaderBody"></div>
+  <div class="ov-btns" style="flex-wrap:wrap;gap:6px">
+   <button class="btn-cancel" id="storyReaderJumpBtn" style="display:none" onclick="jumpToCurrentStoryConv()">↗ 原对话</button>
+   <button class="btn-cancel" onclick="copyCurrentStory()">📋 复制</button>
+   <button class="btn-cancel" onclick="editCurrentStory()">✏️ 编辑</button>
+   <button class="btn-cancel" onclick="deleteCurrentStory()">🗑️ 删除</button>
+   <button class="btn-save" onclick="closeStoryReader()">关闭</button>
+  </div>
+ </div>
+</div>
+
+<!-- v7.9.1: STORY ADD / EDIT FORM OVERLAY -->
+<div class="ov" id="storyFormOv" onclick="if(event.target===this)closeStoryForm()">
+ <div class="ov-box" style="max-width:440px">
+  <h3 id="storyFormTitle">🌙 收录晚安故事</h3>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+   <div style="width:96px">
+    <div style="font-size:11px;color:var(--soft);margin-bottom:4px">故事编号 #</div>
+    <input class="inp" id="sfNum" type="number" min="1" placeholder="113">
+   </div>
+   <div style="flex:1">
+    <div style="font-size:11px;color:var(--soft);margin-bottom:4px">故事标题</div>
+    <input class="inp" id="sfTitle" placeholder="例如：还没关的灯">
+   </div>
+  </div>
+  <div style="margin-bottom:8px">
+   <div style="font-size:11px;color:var(--soft);margin-bottom:4px">日期（可选）</div>
+   <input class="inp" id="sfDate" placeholder="例如：2026-11-27">
+  </div>
+  <div style="margin-bottom:8px">
+   <div style="font-size:11px;color:var(--soft);margin-bottom:4px">故事正文</div>
+   <textarea class="inp" id="sfContent" rows="7" style="resize:vertical;line-height:1.6" placeholder="粘贴或编辑晚安故事全文…"></textarea>
+  </div>
+  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--soft);margin-bottom:10px;cursor:pointer">
+   <input type="checkbox" id="sfFav"> ⭐ 标为特别喜欢的故事
+  </label>
+  <div class="ov-btns">
+   <button class="btn-cancel" onclick="closeStoryForm()">取消</button>
+   <button class="btn-save" onclick="saveStoryForm()">🌙 保存到书架</button>
+  </div>
+ </div>
+</div>
+
 <!-- v7.7.16: STANDALONE READING PROGRESS PAGE -->
 <div class="archive-page" id="readingPage">
  <div class="arc-head">
@@ -1528,7 +1659,17 @@ body.smode .smode-badge{display:inline}
   <button class="arc-back" onclick="closeArchive()">←</button>
   <div class="arc-title">🍑 屁桃星档案馆</div>
  </div>
- <div style="padding:8px"><button class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><p class="hint">查档＋名字可查单条；查档＋分类可查整类。完整｛作品名｝可直接匹配；日常《作品名》和普通分类词不触发。</p><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div><div class="arc-tabs">
+ <div style="padding:8px"><button class="arc-add-btn" data-move-undo hidden onclick="undoMemoryMove()">↩ 撤销上次移动</button><p class="hint">查档＋名字可查单条；查档＋分类可查整类。完整｛作品名｝可直接匹配；日常《作品名》和普通分类词不触发。</p><button class="arc-add-btn" onclick="arcImportPick()">导入档案增补（保留现有数据）</button><input id="arcImportFile" type="file" accept=".json" hidden onchange="arcImportFile(this.files[0])"></div> <div class="arc-search-wrap">
+  <div class="arc-search-row">
+   <input class="inp rd-search" id="arcSearch" placeholder="🔍 搜标题、作者、书名、熊熊型号或正文…" oninput="arcRender()">
+   <button class="arc-search-clear" id="arcSearchClear" style="display:none" onclick="clearArcSearch()">✕</button>
+  </div>
+  <div class="v791-chips" id="arcSearchScopeChips">
+   <button class="v791-chip active" data-ascope="all" onclick="setArcSearchScope('all',this)">🌐 全馆一起搜</button>
+   <button class="v791-chip" data-ascope="tab" onclick="setArcSearchScope('tab',this)">📂 仅搜当前分类</button>
+  </div>
+ </div>
+ <div class="arc-tabs">
   <button class="arc-tab active" onclick="arcSwitchTab('tree',this)">🌳 屁桃星屁屁树</button>
   <button class="arc-tab" onclick="arcSwitchTab('bears',this)">🧸 熊熊</button>
   <button class="arc-tab" onclick="arcSwitchTab('collectibles',this)">🍑 收藏</button>
@@ -2653,6 +2794,8 @@ function showContextPreview(){
   if(arcCtx)segments.push({icon:'📚',label:'档案馆注入',text:arcCtx,cached:false});
   const rdPrev=(typeof buildReadingContext==='function'&&lastUserText)?buildReadingContext(lastUserText):{context:''};
   if(rdPrev.context)segments.push({icon:'📖',label:'阅读进度（按需）',text:rdPrev.context,cached:false});
+  const stPrev=(typeof buildStoryContext==='function'&&lastUserText)?buildStoryContext(lastUserText):{context:''};
+  if(stPrev.context)segments.push({icon:'🌙',label:'晚安故事书架（按需）',text:stPrev.context,cached:false});
   const navPrev=(typeof buildNavContext==='function'&&lastUserText)?buildNavContext(lastUserText):{context:''};
   if(navPrev.context)segments.push({icon:'🧭',label:'导航路况（独立持久）',text:navPrev.context,cached:false});
   // Note: search context is temporary, only exists during send
@@ -3112,7 +3255,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.9.0'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.9.1'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -4328,6 +4471,7 @@ function doExportAll(includeKeys){
     anniversaries:anniversaries,
     archive:archive,
     reading:(typeof getReadingExportData==='function'?getReadingExportData():{v:1,books:[]}), // v7.7.16
+    stories:(typeof getStoriesExportData==='function'?getStoriesExportData():{v:1,baseNum:0,items:[]}), // v7.9.1
     // v6.7: 包含当前对话的实际生效prompt预览
     currentPromptPreview:curConv()?buildPromptPreview(curConv()):'',
     conversations:cleanConvs
@@ -4631,6 +4775,14 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
     api.push({role:'user',content:rdRead.context});
     api.push({role:'assistant',content:'收到当前阅读进度，屁屁会分清每本书的进度、不猜未确认信息📖🍑'});
     api.push(lastRdMsg);
+  }
+  // v7.9.1: 晚安故事专属书架按需注入 —— 仅在聊晚安故事时触发，绝不打碎缓存
+  const stRead=(typeof buildStoryContext==='function')?buildStoryContext(lastUserText):{context:''};
+  if(stRead.context&&api.length&&api[api.length-1].role==='user'){
+    const lastStMsg=api.pop();
+    api.push({role:'user',content:stRead.context});
+    api.push({role:'assistant',content:'收到晚安故事书架目录，屁屁会接着最新编号往下讲，绝不重复题目🌙🍑'});
+    api.push(lastStMsg);
   }
   // v7.8.0: 独立持久化导航状态按需注入 —— 独立于聊天滚动轮数，排在所有缓存断点之后，绝不打碎缓存
   const navRead=(typeof buildNavContext==='function')?buildNavContext(lastUserText):{context:'',report:{active:false}};
@@ -5079,7 +5231,8 @@ function toggleBookmark(i){
     if(btn)btn.classList.toggle('bookmarked',m.bookmarked);
   }
   const toast=$('copyToast');
-  toast.textContent=m.bookmarked?'⭐ 已收藏🍑':'取消收藏';
+  if(typeof updateQuoteBadge==='function')updateQuoteBadge();
+  toast.textContent=m.bookmarked?'⭐ 已收入金句墙🍑':'已取消收藏';
   toast.classList.add('show');
   setTimeout(()=>toast.classList.remove('show'),1200);
 }
@@ -5419,6 +5572,8 @@ function importC(inp){
       if(d.archive){archive={books:[],films:[],games:[],bears:[],travel:[],collectibles:[],bookmarks:[],...d.archive};saveArchive()}
       // v7.7.16: 恢复阅读进度（旧备份无此字段时保留现状，兼容不报错）
       if(d.reading&&typeof importReadingData==='function'){importReadingData(d.reading);}
+      // v7.9.1: 恢复晚安故事书架（旧备份无此字段时保留现状，兼容不报错）
+      if(d.stories&&typeof importStoriesData==='function'){importStoriesData(d.stories);}
       convs=d.conversations;if(convs.length)curId=convs[0].id;
       saveConvs();
       alert('✅ 全量数据已导入！共 '+d.conversations.length+' 个对话 🍑');
@@ -5552,7 +5707,7 @@ function render(){
       const bubbleContent=m.content?md(m.content,citationSources(msgs,i)):'<span class="ldots"><span>●</span><span>●</span><span>●</span></span>';
       const bmClass=m.bookmarked?'bookmarked':'';
       const cacheDiagHtml=m._cacheDiag?`<div id="${m._cacheDiag.id}" style="display:none;font-size:10px;color:var(--soft);padding:4px 6px;margin-top:2px;border-radius:6px;background:rgba(255,255,255,.03);word-break:break-all">🔧 ${esc(m._cacheDiag.info)}</div>`:'';
-      row.innerHTML=`<span class="avatar" onclick="pokePeach(this)" title="戳屁屁">🍑</span><div class="msg-wrap">${thinkHtml}<div class="bubble bot">${bubbleContent}</div>${meta.length?`<div class="msg-meta">${meta.join(' · ')}</div>`:''}${cacheDiagHtml}${arcReadDetails(m.trail?.archiveRead)}<div class="msg-acts">${m.content?`<button onclick="copyMsg(${i})" title="复制">📋</button><button class="${bmClass}" onclick="toggleBookmark(${i})" title="书签">⭐</button>${m.trail?`<button onclick="showTrail(${i})" title="记忆轨迹">🧭</button>`:''}${prevBtn}`:''}</div></div>`;
+      row.innerHTML=`<span class="avatar" onclick="pokePeach(this)" title="戳屁屁">🍑</span><div class="msg-wrap">${thinkHtml}<div class="bubble bot">${bubbleContent}</div>${meta.length?`<div class="msg-meta">${meta.join(' · ')}</div>`:''}${cacheDiagHtml}${arcReadDetails(m.trail?.archiveRead)}<div class="msg-acts">${m.content?`<button onclick="copyMsg(${i})" title="复制">📋</button><button class="${bmClass}" onclick="toggleBookmark(${i})" title="书签">⭐</button><button onclick="saveMsgAsStory(${i})" title="收入晚安故事书架">🌙</button>${m.trail?`<button onclick="showTrail(${i})" title="记忆轨迹">🧭</button>`:''}${prevBtn}`:''}</div></div>`;
     }else{
       let img='';
       if(m.atts)m.atts.forEach(a=>{
@@ -5665,6 +5820,9 @@ function arcSwitchTab(tab,btn){
 
 function arcRender(){
   const body=$('arcBody');
+  const qRaw=($('arcSearch')?.value||'').trim();
+  const clr=$('arcSearchClear');if(clr)clr.style.display=qRaw?'':'none';
+  if(qRaw&&typeof arcRenderSearchResults==='function'){arcRenderSearchResults(body,qRaw);return}
   const tabMap={books:['📚','阅读'],films:['🎬','电影'],games:['🎮','游戏'],bears:['🧸','熊熊'],travel:['🌍','旅行'],collectibles:['🍑','收藏'],bookmarks:['🔖','书签']};
   if(arcTab==='tree'){arcRenderSpecial(body,'tree');return}
   if(tabMap[arcTab])arcRenderList(body,arcTab,tabMap[arcTab][0],tabMap[arcTab][1]);
@@ -9294,6 +9452,519 @@ function buildNavContext(text){
   const label=`前往${navState.destination?.name||'目的地'}（第${(navState.currentStepIdx||0)+1}/${navState.steps.length}步）`;
   return {context:ctx,report:{active:true,label}};
 }
+
+
+// =====================================================================
+// v7.9.1: 🌙 晚安故事专属书架 + 🔍 升级全局搜索 + ⭐ 金句收藏夹 + 🔎 档案馆全文搜索
+// =====================================================================
+
+function v791EscRe(s){return String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function v791SplitTerms(q){
+  return String(q||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
+function v791Highlight(text,terms){
+  let out=esc(String(text||''));
+  if(!terms||!terms.length)return out;
+  const uniq=[...new Set(terms.filter(Boolean))].sort((a,b)=>b.length-a.length);
+  if(!uniq.length)return out;
+  const re=new RegExp('('+uniq.map(v791EscRe).join('|')+')','gi');
+  return out.replace(re,'<mark class="v791-hl">$1</mark>');
+}
+
+// ---------- 1. 🔎 屁桃星档案馆全文搜索 ----------
+let arcSearchScope='all'; // 'all' | 'tab'
+function setArcSearchScope(scope,btn){
+  arcSearchScope=scope==='tab'?'tab':'all';
+  document.querySelectorAll('#arcSearchScopeChips .v791-chip').forEach(b=>b.classList.toggle('active',b.dataset.ascope===arcSearchScope));
+  arcRender();
+}
+function clearArcSearch(){
+  const inp=$('arcSearch');
+  if(inp){inp.value='';inp.focus();}
+  arcRender();
+}
+function arcItemSearchText(item){
+  if(!item)return '';
+  const parts=[
+    item.title,item.author,item.subtitle,item.note,item.versions,
+    item.brand,item.bearType,item.collectType,item.platform,item.year,
+    item.date,item.category,item.status,
+    Array.isArray(item.chooser)?item.chooser.join(' '):item.chooser,
+    Array.isArray(item.tags)?item.tags.join(' '):item.tags
+  ];
+  return parts.filter(Boolean).join(' ').toLowerCase();
+}
+function arcRenderSearchResults(body,qRaw){
+  const terms=v791SplitTerms(qRaw);
+  const allCats=[
+    ['tree','🌳 屁桃星屁屁树'],
+    ['bears','🧸 熊熊'],
+    ['collectibles','🍑 收藏'],
+    ['bookmarks','🔖 书签'],
+    ['travel','🌍 旅行'],
+    ['books','📚 阅读'],
+    ['films','🎬 电影'],
+    ['games','🎮 游戏'],
+    ['events','🗓️ 日历纪念']
+  ];
+  const targetCats=arcSearchScope==='all'
+    ? allCats
+    : allCats.filter(([k])=>arcTab==='cal'?k==='events':k===arcTab);
+
+  const hits=[];
+  targetCats.forEach(([type,catLabel])=>{
+    const list=archive[type]||[];
+    list.forEach((item,oi)=>{
+      const hay=arcItemSearchText(item);
+      if(terms.every(t=>hay.includes(t))){
+        hits.push({type,catLabel,item,oi});
+      }
+    });
+  });
+
+  if(!hits.length){
+    body.innerHTML=`<div class="arc-empty"><span>🔎</span>没有找到包含「${esc(qRaw)}」的档案<br><span style="font-size:12px;color:var(--soft)">${arcSearchScope==='tab'?'试试切换到「🌐 全馆一起搜」看看～':'可以换个词或缩短关键词试试🍑'}</span></div>`;
+    return;
+  }
+
+  let h=`<div style="font-size:11.5px;color:var(--soft);padding:2px 4px 8px">🔎 找到 ${hits.length} 条匹配档案（已搜标题、标签与正文）</div>`;
+  hits.forEach(({type,catLabel,item,oi})=>{
+    const metaBits=[];
+    if(item.author)metaBits.push(item.author);
+    if(item.brand)metaBits.push(item.brand);
+    if(item.bearType)metaBits.push(item.bearType);
+    if(item.collectType)metaBits.push(item.collectType);
+    if(item.platform)metaBits.push(item.platform);
+    if(item.year)metaBits.push(String(item.year));
+    const rawChooser=item.chooser||[];
+    const chooserArr=Array.isArray(rawChooser)?rawChooser:(rawChooser?[rawChooser]:[]);
+    if(chooserArr.length)metaBits.push(chooserArr.join('·')+(type==='bears'?'陪伴':'选的'));
+    const metaHtml=metaBits.length?`<div style="font-size:11.5px;color:var(--soft);margin-bottom:4px">${v791Highlight(metaBits.join(' · '),terms)}</div>`:'';
+    const verHtml=item.versions?`<div class="arc-card-note" style="white-space:pre-wrap">签名版本／题字：${v791Highlight(item.versions,terms)}</div>`:'';
+    const noteHtml=item.note?`<div class="arc-card-note" style="white-space:pre-wrap">${v791Highlight(item.note,terms)}</div>`:'';
+    h+=`<div class="arc-card">
+      <div class="arc-card-acts"><button onclick="openMemoryMove('${type}',${oi})" title="移动到日常主题记忆">📦</button><button onclick="openArcForm('${type}',${oi})">✏️</button><button onclick="arcDel('${type}',${oi})">🗑️</button></div>
+      <div class="arc-cat-pill">${esc(catLabel)}</div>
+      <div class="arc-card-title">${v791Highlight(item.title||'(未命名)',terms)}</div>
+      ${metaHtml}${verHtml}${noteHtml}
+    </div>`;
+  });
+  body.innerHTML=h;
+}
+
+// ---------- 2. 🔍 升级跨对话全文搜索（支持多词AND + 角色/金句筛选） ----------
+let gsearchFilter='all';
+function setGSearchFilter(f,btn){
+  gsearchFilter=f||'all';
+  document.querySelectorAll('#gsearchFilters .v791-chip').forEach(b=>b.classList.toggle('active',b.dataset.gsf===gsearchFilter));
+  runGlobalSearch();
+}
+function runGlobalSearch(){
+  const raw=($('gsearchInput')?.value||'').trim();
+  const terms=v791SplitTerms(raw);
+  if(!terms.length){
+    $('gsearchBody').innerHTML='<div class="gsearch-info">🔍 输入关键词搜索全部对话历史（空格分隔可同时搜多个词）</div>';
+    return;
+  }
+  const results=[];
+  convs.forEach(c=>{
+    if(!c.messages||!c.messages.length)return;
+    const convTitle=(c.private?'🔒 ':'')+(c.title||'未命名');
+    c.messages.forEach((m,mi)=>{
+      if(!m.content)return;
+      if(gsearchFilter==='user'&&m.role!=='user')return;
+      if(gsearchFilter==='assistant'&&m.role!=='assistant')return;
+      if(gsearchFilter==='bookmarked'&&!m.bookmarked)return;
+      const lower=m.content.toLowerCase();
+      if(!terms.every(t=>lower.includes(t)))return;
+      const firstIdx=lower.indexOf(terms[0]);
+      const start=Math.max(0,firstIdx-32);
+      const end=Math.min(m.content.length,firstIdx+terms[0].length+72);
+      let snippet=m.content.slice(start,end);
+      if(start>0)snippet='…'+snippet;
+      if(end<m.content.length)snippet+='…';
+      results.push({convId:c.id,convTitle,msgIdx:mi,role:m.role,bookmarked:!!m.bookmarked,snippet,ts:m.ts||c.updatedAt||0});
+    });
+  });
+  if(!results.length){
+    $('gsearchBody').innerHTML='<div class="gsearch-info">没有找到包含「'+esc(raw)+'」的消息</div>';
+    return;
+  }
+  results.sort((a,b)=>b.ts-a.ts);
+  const limited=results.slice(0,80);
+  let h='<div style="font-size:11px;color:var(--soft);padding:0 4px 8px">找到 '+results.length+' 条结果'+(results.length>80?' · 显示最近80条':'')+'</div>';
+  limited.forEach(r=>{
+    const timeStr=r.ts?fmtTime(r.ts):'';
+    const roleIcon=r.role==='user'?'🌙':'🍑';
+    const starTag=r.bookmarked?' ⭐':'';
+    h+=`<div class="gsr-item" onclick="jumpToSearchResult('${r.convId}',${r.msgIdx})">
+      <div class="gsr-title">${esc(r.convTitle)}${starTag}</div>
+      <div class="gsr-snippet">${roleIcon} ${v791Highlight(r.snippet,terms)}</div>
+      <div class="gsr-meta">${timeStr}</div>
+    </div>`;
+  });
+  $('gsearchBody').innerHTML=h;
+}
+
+// ---------- 3. ⭐ 全局金句收藏夹（自动汇集全部对话的星标消息） ----------
+let quotesScope='all'; // 'all' | 'cur'
+let quotesRole='all';  // 'all' | 'assistant' | 'user'
+function countAllQuotes(){
+  let n=0;
+  (convs||[]).forEach(c=>(c.messages||[]).forEach(m=>{if(m&&m.bookmarked)n++}));
+  return n;
+}
+function updateQuoteBadge(){
+  const b=$('sbQuoteBadge');if(!b)return;
+  const n=countAllQuotes();
+  b.textContent=String(n);
+  b.style.display=n?'inline-block':'none';
+}
+function openQuotesWall(){
+  updateQuoteBadge();
+  $('quotesPage').classList.add('active');
+  renderQuotesWall();
+}
+function closeQuotesWall(){$('quotesPage').classList.remove('active')}
+function viewBookmarks(){openQuotesWall()} // 兼容旧入口
+function setQuotesScope(scope,btn){
+  quotesScope=scope==='cur'?'cur':'all';
+  document.querySelectorAll('#quotesScopeChips [data-qscope]').forEach(b=>b.classList.toggle('active',b.dataset.qscope===quotesScope));
+  renderQuotesWall();
+}
+function cycleQuotesRole(btn){
+  quotesRole=quotesRole==='all'?'assistant':(quotesRole==='assistant'?'user':'all');
+  const labels={all:'👥 全部发言',assistant:'🍑 只看屁屁',user:'🌙 只看Yoru'};
+  if(btn){btn.textContent=labels[quotesRole];btn.classList.toggle('active',quotesRole!=='all');}
+  renderQuotesWall();
+}
+function renderQuotesWall(){
+  const body=$('quotesBody');if(!body)return;
+  const qRaw=($('quotesSearch')?.value||'').trim();
+  const terms=v791SplitTerms(qRaw);
+  const list=[];
+  const srcConvs=quotesScope==='cur'?(curConv()?[curConv()]:[]):(convs||[]);
+  srcConvs.forEach(c=>{
+    const title=(c.private?'🔒 ':'')+(c.title||'未命名');
+    (c.messages||[]).forEach((m,mi)=>{
+      if(!m||!m.bookmarked||!m.content)return;
+      if(quotesRole!=='all'&&m.role!==quotesRole)return;
+      const hay=(title+' '+m.content).toLowerCase();
+      if(terms.length&&!terms.every(t=>hay.includes(t)))return;
+      list.push({convId:c.id,convTitle:title,msgIdx:mi,role:m.role,content:m.content,ts:m.ts||c.updatedAt||0});
+    });
+  });
+  list.sort((a,b)=>b.ts-a.ts);
+  if(!list.length){
+    body.innerHTML=`<div class="arc-empty"><span>⭐</span>${qRaw?'没有找到匹配「'+esc(qRaw)+'」的金句':'还没有收藏任何金句哦～'}<br><span style="font-size:12px;color:var(--soft)">在聊天消息下方点一下 ⭐ 就会自动收进这里🍑</span></div>`;
+    return;
+  }
+  let h=`<div style="font-size:11.5px;color:var(--soft);padding:2px 4px 8px">⭐ 共 ${list.length} 条收藏金句（点正文可展开/收起）</div>`;
+  list.forEach((it,idx)=>{
+    const roleLabel=it.role==='user'?'🌙 Yoru':'🍑 屁屁';
+    const timeStr=it.ts?fmtTime(it.ts):'';
+    h+=`<div class="quote-card">
+      <div class="quote-head">
+        <span class="quote-conv">${roleLabel} · ${v791Highlight(it.convTitle,terms)}</span>
+        <span>${timeStr}</span>
+      </div>
+      <div class="quote-body clamped" onclick="this.classList.toggle('clamped')">${v791Highlight(it.content,terms)}</div>
+      <div class="quote-acts">
+        <button onclick="jumpToQuote('${it.convId}',${it.msgIdx})">↗ 跳回原对话</button>
+        <button onclick="copyQuoteText('${it.convId}',${it.msgIdx})">📋 复制</button>
+        <button onclick="unstarQuote('${it.convId}',${it.msgIdx})">✕ 取消收藏</button>
+      </div>
+    </div>`;
+  });
+  body.innerHTML=h;
+}
+function jumpToQuote(convId,msgIdx){
+  if(genBusy())return;
+  closeQuotesWall();
+  jumpToSearchResult(convId,msgIdx);
+}
+function copyQuoteText(convId,msgIdx){
+  const c=(convs||[]).find(x=>x.id===convId);
+  const txt=c?.messages?.[msgIdx]?.content||'';
+  if(!txt)return;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).catch(()=>{})}
+  else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
+  const toast=$('copyToast');if(toast){toast.textContent='📋 已复制金句🍑';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1200);}
+}
+function unstarQuote(convId,msgIdx){
+  const c=(convs||[]).find(x=>x.id===convId);
+  const m=c?.messages?.[msgIdx];if(!m)return;
+  m.bookmarked=false;
+  saveConv(c);
+  if(c.id===curId){
+    const row=rowForIdx(msgIdx);
+    const btn=row?.querySelector('.msg-acts button[title="书签"]');
+    if(btn)btn.classList.remove('bookmarked');
+  }
+  updateQuoteBadge();
+  renderQuotesWall();
+}
+
+// ---------- 4. 🌙 晚安故事专属书架（独立持久 + 自动递增编号 + 按需轻量注入） ----------
+const STORY_KEY='ps3_stories';
+let storyStore={v:1,baseNum:0,items:[]};
+let storyFilter='all'; // 'all' | 'fav'
+let storyEditId=null;
+let storyDraftMeta=null; // {convId,msgIdx}
+let storyReaderId=null;
+
+function detectMemMaxStoryNum(){
+  let mx=0;
+  try{
+    (memV2.topics||[]).forEach(t=>{
+      const s=(t.content||'')+' '+(Array.isArray(t.tags)?t.tags.join(' '):'');
+      if(!/晚安故事/.test(s))return;
+      const m=s.match(/第\s*(\d+)\s*[个篇]/);
+      if(m){const n=parseInt(m[1],10);if(n>mx)mx=n;}
+    });
+  }catch(e){}
+  return mx;
+}
+function loadStories(){
+  try{
+    const raw=localStorage.getItem(STORY_KEY);
+    if(raw){
+      const p=JSON.parse(raw);
+      if(p&&Array.isArray(p.items)){
+        storyStore={v:1,baseNum:Number(p.baseNum)||0,items:p.items};
+      }
+    }
+  }catch(e){}
+  const memMax=detectMemMaxStoryNum();
+  if(memMax>storyStore.baseNum)storyStore.baseNum=memMax;
+  return storyStore;
+}
+function saveStories(){
+  try{localStorage.setItem(STORY_KEY,JSON.stringify(storyStore))}catch(e){}
+  updateStoryEntryBadge();
+}
+function getLatestStoryNum(){
+  loadStories();
+  let mx=Number(storyStore.baseNum)||0;
+  (storyStore.items||[]).forEach(s=>{const n=Number(s.num)||0;if(n>mx)mx=n;});
+  return mx;
+}
+function getStoriesExportData(){
+  loadStories();
+  return {v:1,baseNum:Number(storyStore.baseNum)||0,items:storyStore.items||[]};
+}
+function importStoriesData(d){
+  if(!d||!Array.isArray(d.items))return;
+  storyStore={v:1,baseNum:Number(d.baseNum)||0,items:d.items};
+  saveStories();
+}
+function updateStoryEntryBadge(){
+  const btn=$('storyEntryBtn');if(!btn)return;
+  const n=(storyStore.items||[]).length;
+  const latest=getLatestStoryNum();
+  btn.textContent=latest?`🌙 晚安故事书架（#${latest}${n?` · 收录${n}篇`:''}）`:'🌙 晚安故事书架';
+}
+function extractStoryTitle(text){
+  const s=String(text||'').trim();
+  if(!s)return '';
+  const m1=s.match(/《([^《》\n]{1,36})》/);
+  if(m1)return m1[1].trim();
+  const lines=s.split(/\n+/).map(x=>x.replace(/^[#*\s🌙🍑✨—\-第0-9个篇：:]+/,'').trim()).filter(Boolean);
+  if(lines.length)return lines[0].slice(0,26);
+  return '晚安故事';
+}
+function openStoryShelf(){
+  loadStories();
+  $('storyPage').classList.add('active');
+  renderStoryShelf();
+}
+function closeStoryShelf(){$('storyPage').classList.remove('active')}
+function setStoryFilter(f,btn){
+  storyFilter=f==='fav'?'fav':'all';
+  document.querySelectorAll('#storyFilterChips [data-sf]').forEach(b=>b.classList.toggle('active',b.dataset.sf===storyFilter));
+  renderStoryShelf();
+}
+function editStoryBaseNum(){
+  const cur=getLatestStoryNum();
+  const v=prompt('设置当前最新晚安故事编号（下一篇将自动从此编号 +1）：',String(cur));
+  if(v===null)return;
+  const n=parseInt(v,10);
+  if(isNaN(n)||n<0){alert('请输入有效的数字编号～');return}
+  storyStore.baseNum=n;
+  saveStories();
+  renderStoryShelf();
+}
+function renderStoryShelf(){
+  const body=$('storyBody');if(!body)return;
+  loadStories();
+  const latest=getLatestStoryNum();
+  const total=storyStore.items.length;
+  const stats=$('storyStatsBar');
+  if(stats){
+    stats.innerHTML=`<span>🌙 已收录 <b>${total}</b> 篇 · 最新编号 <b>#${latest}</b></span><span style="font-size:11px;color:var(--soft)">下篇自动 #${latest+1}</span>`;
+  }
+  const qRaw=($('storySearch')?.value||'').trim();
+  const terms=v791SplitTerms(qRaw);
+  let items=[...(storyStore.items||[])];
+  if(storyFilter==='fav')items=items.filter(s=>s.fav);
+  if(terms.length){
+    items=items.filter(s=>{
+      const hay=(`#${s.num||''} ${s.title||''} ${s.date||''} ${s.content||''}`).toLowerCase();
+      return terms.every(t=>hay.includes(t));
+    });
+  }
+  items.sort((a,b)=>(Number(b.num)||0)-(Number(a.num)||0)||(b.createdAt||0)-(a.createdAt||0));
+  if(!items.length){
+    body.innerHTML=`<div class="arc-empty"><span>🌙</span>${qRaw?'没找到包含「'+esc(qRaw)+'」的故事':(storyFilter==='fav'?'还没有标星的故事哦～':'书架还是空的～')}<br><span style="font-size:12px;color:var(--soft)">聊完晚安故事后，点消息底下的 🌙 就能一键收进来（已自动识别当前到 #${latest}，下篇自动 #${latest+1}）🍑</span></div>`;
+    return;
+  }
+  let h='';
+  items.forEach(s=>{
+    h+=`<div class="story-card" onclick="openStoryReader('${s.id}')">
+      <div class="story-card-head">
+        <div class="story-card-title"><span class="story-num-badge">#${s.num||'?'}</span>${v791Highlight(s.title||'未命名故事',terms)}</div>
+        <span style="font-size:12px;color:var(--soft)">${s.fav?'⭐ ':''}${esc(s.date||'')}</span>
+      </div>
+      <div class="story-card-preview">${v791Highlight(s.content||'',terms)}</div>
+    </div>`;
+  });
+  body.innerHTML=h;
+}
+function saveMsgAsStory(msgIdx){
+  const c=curConv();if(!c)return;
+  const m=c.messages[msgIdx];if(!m||!m.content)return;
+  loadStories();
+  // 如果这条消息已经收录过，直接打开阅读器
+  const existing=(storyStore.items||[]).find(s=>s.convId===c.id&&s.msgIdx===msgIdx);
+  if(existing){openStoryReader(existing.id);return}
+  storyEditId=null;
+  storyDraftMeta={convId:c.id,msgIdx};
+  const nextNum=getLatestStoryNum()+1;
+  $('storyFormTitle').textContent='🌙 收入晚安故事书架';
+  $('sfNum').value=String(nextNum);
+  $('sfTitle').value=extractStoryTitle(m.content);
+  $('sfDate').value=m.ts?new Date(m.ts).toISOString().slice(0,10):new Date().toISOString().slice(0,10);
+  $('sfContent').value=m.content;
+  $('sfFav').checked=false;
+  $('storyFormOv').classList.add('active');
+}
+function openStoryForm(idOrNew){
+  loadStories();
+  storyDraftMeta=null;
+  if(idOrNew===-1||!idOrNew){
+    storyEditId=null;
+    const nextNum=getLatestStoryNum()+1;
+    $('storyFormTitle').textContent='🌙 手动收录 / 补录故事';
+    $('sfNum').value=String(nextNum);
+    $('sfTitle').value='';
+    $('sfDate').value=new Date().toISOString().slice(0,10);
+    $('sfContent').value='';
+    $('sfFav').checked=false;
+  }else{
+    const s=(storyStore.items||[]).find(x=>x.id===idOrNew);if(!s)return;
+    storyEditId=s.id;
+    $('storyFormTitle').textContent='✏️ 编辑晚安故事';
+    $('sfNum').value=String(s.num||'');
+    $('sfTitle').value=s.title||'';
+    $('sfDate').value=s.date||'';
+    $('sfContent').value=s.content||'';
+    $('sfFav').checked=!!s.fav;
+  }
+  $('storyFormOv').classList.add('active');
+}
+function closeStoryForm(){$('storyFormOv').classList.remove('active')}
+function saveStoryForm(){
+  const title=($('sfTitle').value||'').trim();
+  const content=($('sfContent').value||'').trim();
+  const num=parseInt($('sfNum').value,10)||(getLatestStoryNum()+1);
+  const date=($('sfDate').value||'').trim()||new Date().toISOString().slice(0,10);
+  const fav=!!$('sfFav').checked;
+  if(!title&&!content){alert('请至少填写故事标题或正文～');return}
+  loadStories();
+  if(storyEditId){
+    const s=(storyStore.items||[]).find(x=>x.id===storyEditId);
+    if(s){s.num=num;s.title=title||'晚安故事';s.date=date;s.content=content;s.fav=fav;s.updatedAt=Date.now();}
+  }else{
+    const item={
+      id:'st_'+uid(),
+      num,
+      title:title||'晚安故事',
+      date,
+      content,
+      fav,
+      createdAt:Date.now(),
+      ...(storyDraftMeta?{convId:storyDraftMeta.convId,msgIdx:storyDraftMeta.msgIdx}:{})
+    };
+    storyStore.items.unshift(item);
+  }
+  if(num>storyStore.baseNum)storyStore.baseNum=num;
+  saveStories();
+  closeStoryForm();
+  renderStoryShelf();
+  if(storyReaderId&&storyReaderId===storyEditId)openStoryReader(storyReaderId);
+  const toast=$('copyToast');if(toast){toast.textContent=`🌙 已收入第 #${num} 篇晚安故事🍑`;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1500);}
+}
+function openStoryReader(id){
+  loadStories();
+  const s=(storyStore.items||[]).find(x=>x.id===id);if(!s)return;
+  storyReaderId=s.id;
+  $('storyReaderTitle').textContent=`#${s.num||'?'} 《${s.title||'未命名'}》`;
+  $('storyReaderMeta').textContent=(s.date?`📅 ${s.date}`:'')+(s.fav?' · ⭐ 特别喜欢':'');
+  $('storyReaderFavBtn').textContent=s.fav?'⭐ 已收藏':'☆ 收藏';
+  $('storyReaderFavBtn').classList.toggle('active',!!s.fav);
+  $('storyReaderBody').textContent=s.content||'';
+  const jb=$('storyReaderJumpBtn');
+  if(jb)jb.style.display=(s.convId&&typeof s.msgIdx==='number')?'':'none';
+  $('storyReaderOv').classList.add('active');
+}
+function closeStoryReader(){$('storyReaderOv').classList.remove('active')}
+function toggleCurrentStoryFav(){
+  const s=(storyStore.items||[]).find(x=>x.id===storyReaderId);if(!s)return;
+  s.fav=!s.fav;saveStories();openStoryReader(s.id);renderStoryShelf();
+}
+function copyCurrentStory(){
+  const s=(storyStore.items||[]).find(x=>x.id===storyReaderId);if(!s)return;
+  const txt=`#${s.num||'?'} 《${s.title||''}》\n${s.date||''}\n\n${s.content||''}`.trim();
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).catch(()=>{})}
+  else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
+  const toast=$('copyToast');if(toast){toast.textContent='📋 已复制晚安故事🍑';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1200);}
+}
+function editCurrentStory(){if(!storyReaderId)return;closeStoryReader();openStoryForm(storyReaderId)}
+function deleteCurrentStory(){
+  if(!storyReaderId)return;
+  if(!confirm('确定把这篇故事从书架移除吗？（不会删除原对话消息）'))return;
+  storyStore.items=(storyStore.items||[]).filter(x=>x.id!==storyReaderId);
+  saveStories();closeStoryReader();renderStoryShelf();
+}
+function jumpToCurrentStoryConv(){
+  const s=(storyStore.items||[]).find(x=>x.id===storyReaderId);
+  if(!s||!s.convId||typeof s.msgIdx!=='number')return;
+  closeStoryReader();closeStoryShelf();
+  jumpToSearchResult(s.convId,s.msgIdx);
+}
+function buildStoryContext(text){
+  const raw=String(text||'').trim();
+  if(!raw)return {context:''};
+  const trigger=/晚安故事|睡前故事|讲个故事|讲故事|故事书架|故事编号|第几[个篇].*故事|今晚.*故事|故事.*今晚/.test(raw);
+  if(!trigger)return {context:''};
+  loadStories();
+  const latest=getLatestStoryNum();
+  const recent=[...(storyStore.items||[])]
+    .sort((a,b)=>(Number(b.num)||0)-(Number(a.num)||0))
+    .slice(0,10)
+    .map(s=>`#${s.num}《${s.title}》`);
+  if(!latest&&!recent.length)return {context:''};
+  const lines=[
+    '【🌙 晚安故事专属书架（实时精确记录，以此为准）】',
+    `· 当前最新已完成编号：第 ${latest} 篇（如果今晚讲新故事，请直接编为第 ${latest+1} 篇）`,
+    recent.length?`· 书架最近收录题目：${recent.join('、')}`:'· 书架暂未录入正文，编号已承接历史进度',
+    '· 要求：讲新晚安故事时顺延编号、不要与上面已讲过的题目重复。'
+  ];
+  return {context:lines.join('\n')};
+}
+
+// 启动时初始化金句角标与晚安故事书架计数
+setTimeout(()=>{try{loadStories();updateStoryEntryBadge();updateQuoteBadge();}catch(e){}},350);
 
 </script>
 </body>

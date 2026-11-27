@@ -1711,6 +1711,9 @@ body.smode .smode-badge{display:inline}
    <div style="font-size:11.5px;color:var(--soft);margin-bottom:4px">粘贴或补充暗盒资料（保存后立即上锁隐藏）：</div>
    <textarea class="inp" id="vaultEditInput" rows="6" style="line-height:1.55" placeholder="可以把搜索到的剧情简介、人物表或背景设定粘贴到这里，保存后只给屁屁看…"></textarea>
   </div>
+  <label id="vaultKeepRow" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--soft);margin:6px 0 4px;cursor:pointer">
+   <input type="checkbox" id="vaultKeepChk" onchange="toggleVaultKeepForever(this.checked)"> 📌 永久保留此暗盒（看完满7天后不自动清理）
+  </label>
   <div class="ov-btns" style="flex-wrap:wrap;gap:6px" id="vaultViewBtns">
    <button class="btn-cancel" id="vaultUnlockBtn" onclick="unlockVaultText()">🔓 我已看完，查看原文</button>
    <button class="btn-cancel" id="vaultEditBtn" onclick="toggleVaultEdit()">✏️ 存入/更新暗盒</button>
@@ -3430,7 +3433,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.9.3'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.9.5'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -10462,7 +10465,7 @@ function buildVaultSpoilerRule(item,domain){
           const vLines=['\n[🔒 书籍屁屁暗盒剧情层（仅屁屁内部参考，已本地记住无需重复联网搜）]'];
           vaultHits.slice(0,2).forEach(b=>{
             vLines.push(buildVaultSpoilerRule(b,'reading'));
-            vLines.push(`《${b.title}》暗盒资料：${b.plotVault.text.slice(0,1500)}`);
+            vLines.push(`《${b.title}》暗盒资料：${b.plotVault.text.slice(0,3600)}`);
           });
           res.context=(res.context?res.context+'\n':'')+vLines.join('\n');
           if(res.report)res.report.active=true;
@@ -10513,7 +10516,7 @@ function buildMediaContext(text,now=Date.now()){
     lines.push('\n[🔒 影视屁屁暗盒剧情层（仅屁屁内部参考，已本地记住无需重复联网搜）]');
     vaultHits.slice(0,2).forEach(it=>{
       lines.push(buildVaultSpoilerRule(it,'media'));
-      lines.push(`《${it.title}》暗盒资料：${it.plotVault.text.slice(0,1500)}`);
+      lines.push(`《${it.title}》暗盒资料：${it.plotVault.text.slice(0,3600)}`);
     });
   }
   return {context:lines.join('\n')};
@@ -10698,6 +10701,192 @@ function switchSBTab(tab){
     try{if(typeof updateMediaBadge==='function')updateMediaBadge();}catch(e){}
   }
 }
+
+
+// =====================================================================
+// v7.9.5: 🔒 暗盒降噪防截断（6000字 + 摘要模型可选精炼）+ 看完满7天自动清理暗盒
+// =====================================================================
+const VAULT_EXPIRE_MS=7*24*3600*1000;
+const VAULT_MAX_STORE_CHARS=6000;
+
+function cleanVaultText(raw){
+  let s=String(raw||'');
+  // 去掉维基百科/网页脚标、编辑标记、引用锚点与裸链接噪点
+  s=s.replace(/\[\\?\[[^\]]{1,24}\\?\]\]\(#cite_note[^)]*\)/gi,'');
+  s=s.replace(/\[[^\]]{0,20}\]\(#cite_note[^)]*\)/gi,'');
+  s=s.replace(/\[(?:编辑|edit|来源请求|需要引用)\]/gi,'');
+  s=s.replace(/\[\d{1,3}\]/g,'');
+  s=s.replace(/\[([^\]]{1,80})\]\(https?:\/\/[^)]+\)/gi,'$1');
+  s=s.replace(/https?:\/\/\S+/gi,'');
+  s=s.replace(/[ \t]{2,}/g,' ');
+  s=s.replace(/\n{3,}/g,'\n\n');
+  return s.trim();
+}
+
+function pruneExpiredVaults(now=Date.now()){
+  let changedRead=false,changedMedia=false,pruned=0;
+  const checkList=(list,isRead)=>{
+    (list||[]).forEach(it=>{
+      if(!it||!it.plotVault||!it.plotVault.text)return;
+      if(it.plotVault.keepForever)return;
+      if(it.status!=='done')return; // 未看完/在追/想看绝不自动清理
+      const baseTs=it.finishedAt||it.plotVault.updatedAt||it.updatedAt||0;
+      if(baseTs&&now-baseTs>VAULT_EXPIRE_MS){
+        it.plotVault=null;
+        pruned++;
+        if(isRead)changedRead=true;else changedMedia=true;
+      }
+    });
+  };
+  try{
+    if(typeof loadReading==='function')loadReading();
+    if(typeof readingData!=='undefined'&&readingData&&Array.isArray(readingData.books))checkList(readingData.books,true);
+    if(changedRead&&typeof saveReading==='function')saveReading();
+  }catch(e){}
+  try{
+    loadMedia();
+    checkList(mediaStore.items,false);
+    if(changedMedia)saveMedia();
+  }catch(e){}
+  return pruned;
+}
+
+function toggleVaultKeepForever(checked){
+  const item=getVaultTarget(curVaultDomain,curVaultId);
+  if(!item||!item.plotVault)return;
+  item.plotVault.keepForever=!!checked;
+  saveVaultDomain(curVaultDomain);
+}
+
+// 增强 openVaultView：显示 7 天自动清理倒计时与永久保留勾选
+(function enhanceVaultV795(){
+  const _origOpenVault=openVaultView;
+  openVaultView=function(domain,id){
+    pruneExpiredVaults();
+    _origOpenVault(domain,id);
+    const item=getVaultTarget(domain,id);
+    const row=$('vaultKeepRow');
+    const chk=$('vaultKeepChk');
+    const meta=$('vaultViewMeta');
+    const hasText=!!(item&&item.plotVault&&item.plotVault.text&&item.plotVault.text.trim());
+    if(row)row.style.display=hasText?'flex':'none';
+    if(chk)chk.checked=!!(item&&item.plotVault&&item.plotVault.keepForever);
+    if(hasText&&meta){
+      let expNote='';
+      if(item.plotVault.keepForever){
+        expNote=' · 📌 已设为永久保留';
+      }else if(item.status==='done'){
+        const baseTs=item.finishedAt||item.plotVault.updatedAt||Date.now();
+        const leftDays=Math.max(1,Math.ceil((VAULT_EXPIRE_MS-(Date.now()-baseTs))/(24*3600*1000)));
+        expNote=` · ⏳ 约 ${leftDays} 天后自动清理暗盒（保留看过记录）`;
+      }else{
+        expNote=' · 看完满7天后自动清理暗盒（保留看过记录）';
+      }
+      meta.textContent+=expNote;
+    }
+  };
+
+  // 打开阅读/观影页时自动执行一次到期暗盒清理
+  const _origOpenMedia=openMediaPage;
+  openMediaPage=function(){pruneExpiredVaults();_origOpenMedia();};
+  if(typeof openReading==='function'){
+    const _origOpenReading=openReading;
+    openReading=function(){pruneExpiredVaults();_origOpenReading();};
+  }
+})();
+
+// 后台可选：如果配置了摘要模型，把超长原始搜索内容静默浓缩为完整的结构化剧情（含结局）
+async function condenseVaultInBackground(domain,itemId,title,rawClean){
+  try{
+    if(!sumModelSettings||!sumModelSettings.on||!sumModelSettings.id)return;
+    const apiKey=($('apiKey')?.value||'').trim();
+    if(!apiKey||rawClean.length<900)return;
+    const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey,'HTTP-Referer':location.href,'X-Title':'PeachiStation'},
+      body:JSON.stringify({
+        model:sumModelSettings.id,
+        max_tokens:1200,
+        temperature:0.2,
+        messages:[
+          {role:'system',content:'你是书影剧情整理助手。请把下面的搜索资料整理成一份完整、清晰、无网页噪点的中文剧情档案（约500-900字），必须包含：1. 背景与主要人物 2. 完整剧情脉络（开头→发展→高潮反转→结局，不要遗漏结局）3. 关键彩蛋或核心主题。只输出整理后的纯文本。'},
+          {role:'user',content:`作品：《${title}》\n\n搜索资料：\n${rawClean.slice(0,9000)}`}
+        ]
+      })
+    });
+    if(!resp.ok)return;
+    const j=await resp.json();
+    const out=(j?.choices?.[0]?.message?.content||'').trim();
+    if(out&&out.length>=120){
+      const target=getVaultTarget(domain,itemId);
+      if(target&&target.plotVault){
+        target.plotVault.text=out.slice(0,VAULT_MAX_STORE_CHARS);
+        target.plotVault.source='auto_condensed';
+        target.plotVault.updatedAt=Date.now();
+        saveVaultDomain(domain);
+      }
+    }
+  }catch(e){}
+}
+
+// 覆盖 tryAutoVaultFromSearch：清洗噪点 + 6000字防截断 + 后台静默浓缩
+tryAutoVaultFromSearch=function(conv,searchContext){
+  const cleaned=cleanVaultText(searchContext);
+  if(!cleaned||cleaned.length<50)return;
+  const lastUser=[...(conv?.messages||[])].reverse().find(x=>x&&x.role==='user'&&x.content);
+  if(!lastUser)return;
+  const uText=String(lastUser.content||'');
+  const tNorm=arcNorm(uText);
+  if(!tNorm)return;
+  const mediaWordRe=/电影|电视剧|剧集|追剧|美剧|日剧|韩剧|英剧|番剧|看剧|网剧|导演|主演|上映|影院|看片/;
+  const prefersBook=/书|小说|原著|作者|阅读|读到/.test(uText)&&!mediaWordRe.test(uText);
+  const prefersMedia=mediaWordRe.test(uText)&&!/原著|小说|书/.test(uText);
+  const domains=prefersBook?['reading','media']:(prefersMedia?['media','reading']:['media','reading']);
+  for(const dom of domains){
+    let items=[];
+    if(dom==='reading'){
+      if(typeof loadReading==='function')loadReading();
+      items=(typeof readingData!=='undefined'&&readingData&&Array.isArray(readingData.books))?readingData.books:[];
+    }else{
+      loadMedia();
+      items=mediaStore.items||[];
+    }
+    const hit=items.find(it=>{
+      const aliases=dom==='reading'?(typeof rdBookAliases==='function'?rdBookAliases(it):[arcNorm(it.title)]):mdItemAliases(it);
+      return aliases.some(a=>a.length>=2&&tNorm.includes(a));
+    });
+    if(hit){
+      const keepPrev=!!(hit.plotVault&&hit.plotVault.keepForever);
+      hit.plotVault={text:cleaned.slice(0,VAULT_MAX_STORE_CHARS),updatedAt:Date.now(),source:'auto_search',keepForever:keepPrev};
+      saveVaultDomain(dom);
+      const toast=$('copyToast');
+      if(toast){
+        toast.textContent=`🔒 屁屁已悄悄把《${hit.title}》完整资料记进暗盒（已去噪防剧透）🍑`;
+        toast.classList.add('show');
+        setTimeout(()=>toast.classList.remove('show'),2400);
+      }
+      condenseVaultInBackground(dom,hit.id,hit.title,cleaned);
+      return;
+    }
+  }
+};
+
+// 同步提升手动存入上限至 6000 字并自动清洗噪点
+const _origSaveVaultEdit=saveVaultEdit;
+saveVaultEdit=function(){
+  const inp=$('vaultEditInput');
+  if(inp)inp.value=cleanVaultText(inp.value).slice(0,VAULT_MAX_STORE_CHARS);
+  const item=getVaultTarget(curVaultDomain,curVaultId);if(!item)return;
+  const txt=(inp?.value||'').trim();
+  if(!txt){alert('请输入要锁进暗盒的内容～');return}
+  const keepPrev=!!(item.plotVault&&item.plotVault.keepForever);
+  item.plotVault={text:txt,updatedAt:Date.now(),source:'manual',keepForever:keepPrev};
+  saveVaultDomain(curVaultDomain);
+  closeVaultView();
+  const toast=$('copyToast');if(toast){toast.textContent=`🔒 已将《${item.title}》剧情锁进屁屁暗盒🍑`;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800);}
+};
+
+setTimeout(()=>{try{pruneExpiredVaults();}catch(e){}},600);
 
 </script>
 </body>

@@ -360,6 +360,15 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 .att-slim-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid var(--border-warm);background:rgba(255,255,255,.04);color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit;align-self:center;white-space:nowrap}
 .att-slim-pill.on{border-color:var(--pink);background:rgba(232,160,191,.16);color:var(--gold)}
 
+
+/* v7.9.2: 观影/观剧模块与🔒屁屁暗盒剧情层 */
+.vault-badge{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:4px 9px;border-radius:999px;border:1px dashed rgba(180,165,235,.45);background:rgba(155,140,220,.12);color:#d4ccff;font-size:11px;cursor:pointer;font-family:inherit}
+.vault-badge:active{background:rgba(155,140,220,.24)}
+.vault-badge.empty{border-style:solid;border-color:var(--border);background:none;color:var(--soft)}
+.vault-shield{padding:12px;border-radius:12px;background:rgba(155,140,220,.1);border:1px dashed rgba(180,165,235,.4);color:var(--soft);font-size:12.5px;line-height:1.6;text-align:center;margin:8px 0}
+.vault-reveal-box{max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.22);border:1px solid var(--border);font-size:13px;line-height:1.65;color:var(--gold);white-space:pre-wrap;word-break:break-word;margin:8px 0}
+.media-kind-pill{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:999px;background:rgba(246,193,119,.16);color:#f6c177;margin-right:5px}
+
 /* v7.9.1: 侧边栏快捷入口、金句墙、档案馆搜索与晚安故事书架 */
 .sb-quick-row{display:flex;gap:6px;padding:0 12px 8px}
 .sb-quick-btn{flex:1;padding:7px 8px;border-radius:10px;border:1px solid var(--border);background:rgba(232,160,191,.07);color:var(--gold);font-size:11.5px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
@@ -954,6 +963,7 @@ body.smode .smode-badge{display:inline}
    </div>
    <button class="sb-foot-btn" id="storyEntryBtn" style="margin-bottom:6px" onclick="closeSB();openStoryShelf()">🌙 晚安故事书架</button>
    <button class="sb-foot-btn" id="readingEntryBtn" style="margin-bottom:6px" onclick="closeSB();openReading()">📖 阅读进度</button>
+   <button class="sb-foot-btn" id="mediaEntryBtn" style="margin-bottom:6px" onclick="closeSB();openMediaPage()">🎬 观影/观剧</button>
    <button class="sb-foot-btn" style="margin-bottom:6px" onclick="closeSB();openArchive()">🍑 屁桃星档案馆</button>
    <button class="sb-foot-btn" onclick="backToSettings()">⚙️ 全局设置</button>
   </div>
@@ -1303,6 +1313,7 @@ body.smode .smode-badge{display:inline}
   <button class="m-item" onclick="closeMenu();genSummary()">📝 生成对话摘要</button>
   <button class="m-item" onclick="closeMenu();openQuotesWall()">⭐ 金句收藏夹</button>
   <button class="m-item" onclick="closeMenu();openStoryShelf()">🌙 晚安故事书架</button>
+  <button class="m-item" onclick="closeMenu();openMediaPage()">🎬 观影/观剧记录</button>
   <button class="m-item" onclick="closeMenu();showContextPreview()">📋 查看本轮发送内容</button>
   <button class="m-item" onclick="closeMenu();openGlobalSearch()">🔍 搜索全部对话</button>
   <button class="m-item" onclick="closeMenu();showCacheDebug()">🔧 缓存调试面板</button>
@@ -1571,6 +1582,144 @@ body.smode .smode-badge{display:inline}
   <div class="ov-btns">
    <button class="btn-cancel" onclick="closeStoryForm()">取消</button>
    <button class="btn-save" onclick="saveStoryForm()">🌙 保存到书架</button>
+  </div>
+ </div>
+</div>
+
+
+<!-- v7.9.2: STANDALONE MEDIA (MOVIES & TV) TRACKER PAGE -->
+<div class="archive-page" id="mediaPage">
+ <div class="arc-head">
+  <button class="arc-back" onclick="closeMediaPage()">←</button>
+  <div class="arc-title">🎬 观影 / 观剧记录</div>
+ </div>
+ <div style="padding:8px 12px 6px">
+  <p class="hint" style="margin-bottom:8px">与阅读进度完全独立，同名书影不串台；聊推荐电影/剧或最近看了什么时自动排重。每部作品都自带「🔒 暗盒剧情层」，联网搜过一次屁屁就悄悄记住，绝不剧透给 Yoru。</p>
+  <input class="inp rd-search" id="mdSearch" placeholder="🔍 搜索片名、剧名、导演或别名…" oninput="renderMediaPage()">
+  <div class="v791-chips" id="mdKindChips">
+   <button class="v791-chip active" data-mkind="all" onclick="mdSetKindFilter('all',this)">🎞️ 全部类型</button>
+   <button class="v791-chip" data-mkind="movie" onclick="mdSetKindFilter('movie',this)">🎬 电影</button>
+   <button class="v791-chip" data-mkind="tv" onclick="mdSetKindFilter('tv',this)">📺 剧集 / 番剧</button>
+  </div>
+ </div>
+ <div class="arc-tabs" id="mdTabs">
+  <button class="arc-tab active" data-mdtab="watching" onclick="mdSwitchTab('watching',this)">🍿 在追/在看</button>
+  <button class="arc-tab" data-mdtab="want" onclick="mdSwitchTab('want',this)">💭 想看</button>
+  <button class="arc-tab" data-mdtab="paused" onclick="mdSwitchTab('paused',this)">⏸️ 搁置</button>
+  <button class="arc-tab" data-mdtab="done" onclick="mdSwitchTab('done',this)">✅ 看完</button>
+  <button class="arc-tab" data-mdtab="all" onclick="mdSwitchTab('all',this)">🎞️ 全部</button>
+ </div>
+ <div class="arc-body" id="mediaBody"></div>
+</div>
+
+<!-- v7.9.2: MEDIA ADD / EDIT FORM OVERLAY -->
+<div class="ov" id="mediaFormOv" onclick="if(event.target===this)closeMediaForm()">
+ <div class="ov-box" role="dialog" aria-modal="true" aria-labelledby="mdFormTitle">
+  <h3 id="mdFormTitle">🎬 添加观影 / 观剧记录</h3>
+  <div class="arc-form">
+   <div class="field">
+    <label class="label">类型</label>
+    <div class="arc-status-btns" id="mdFKindBtns">
+     <button type="button" class="arc-status-btn active" data-kind="movie" onclick="mdSetFormKind('movie')">🎬 电影</button>
+     <button type="button" class="arc-status-btn" data-kind="tv" onclick="mdSetFormKind('tv')">📺 剧集 / 番剧</button>
+    </div>
+   </div>
+   <div class="field">
+    <label class="label">片名 / 剧名</label>
+    <input class="inp" id="mdFTitle" placeholder="例如：穿Prada的女王2 / 蜘蛛侠">
+   </div>
+   <div class="field">
+    <label class="label">导演 / 主演（可选）</label>
+    <input class="inp" id="mdFCreator" placeholder="例如：安妮·海瑟薇 / 诺兰">
+   </div>
+   <div class="field">
+    <label class="label">检索别名（可选，逗号分隔，方便简称匹配）</label>
+    <input class="inp" id="mdFAliases" placeholder="例如：穿普拉达的女王2, 时尚女魔头2">
+   </div>
+   <div class="field">
+    <label class="label">状态</label>
+    <div class="arc-status-btns" id="mdFStatusBtns">
+     <button type="button" class="arc-status-btn" data-st="want" onclick="mdSetFormStatus('want')">想看</button>
+     <button type="button" class="arc-status-btn" data-st="watching" onclick="mdSetFormStatus('watching')">在追/在看</button>
+     <button type="button" class="arc-status-btn" data-st="paused" onclick="mdSetFormStatus('paused')">搁置</button>
+     <button type="button" class="arc-status-btn" data-st="done" onclick="mdSetFormStatus('done')">看完</button>
+    </div>
+   </div>
+   <div class="field">
+    <label class="label">当前进度（电影可留空，剧集如 S2E5 / 第12集）</label>
+    <input class="inp" id="mdFProgress" placeholder="例如：第2季第5集 / 看到一半">
+   </div>
+   <div class="field">
+    <label class="label">观看时间</label>
+    <div class="rd-date-chips" id="mdFDateChips">
+     <button type="button" class="rd-date-chip active" data-dm="today" onclick="mdSetDateMode('today')">今天</button>
+     <button type="button" class="rd-date-chip" data-dm="past_done" onclick="mdSetDateMode('past_done')">以前看过</button>
+     <button type="button" class="rd-date-chip" data-dm="past_half" onclick="mdSetDateMode('past_half')">之前看一半</button>
+     <button type="button" class="rd-date-chip" data-dm="custom" onclick="mdSetDateMode('custom')">指定日期</button>
+    </div>
+    <input class="inp" id="mdFDateVal" type="date" style="display:none;margin-top:6px">
+   </div>
+   <div class="field">
+    <label class="label">备注 / 观后感（可选，Yoru 可见）</label>
+    <textarea class="inp" id="mdFNote" rows="3" placeholder="喜欢的片段、心情或想记住的细节…"></textarea>
+   </div>
+  </div>
+  <div class="ov-btns">
+   <button class="btn-cancel" onclick="closeMediaForm()">取消</button>
+   <button class="btn-save" onclick="saveMediaForm()">💾 保存</button>
+  </div>
+ </div>
+</div>
+
+<!-- v7.9.2: 🔒 PLOT VAULT VIEW / MANAGE OVERLAY (SPOILER-PROTECTED) -->
+<div class="ov" id="vaultViewOv" onclick="if(event.target===this)closeVaultView()">
+ <div class="ov-box" style="max-width:440px">
+  <h3 id="vaultViewTitle">🔒 屁屁暗盒剧情层</h3>
+  <div id="vaultViewMeta" style="font-size:11.5px;color:var(--soft);margin-bottom:6px"></div>
+  <div id="vaultShieldBox" class="vault-shield">
+   🔒 完整剧情与设定已安全锁在屁屁暗盒里，<b>不会展示正文</b>，防止不小心剧透给 Yoru。<br>
+   <span style="font-size:11.5px">聊到这部作品时，屁屁会自动对照你的进度精准控嘴（未看完绝不剧透，看完后畅聊结局）～</span>
+  </div>
+  <div id="vaultRevealWrap" style="display:none">
+   <div class="vault-reveal-box" id="vaultRevealText"></div>
+  </div>
+  <div id="vaultEditWrap" style="display:none;margin-top:8px">
+   <div style="font-size:11.5px;color:var(--soft);margin-bottom:4px">粘贴或补充暗盒资料（保存后立即上锁隐藏）：</div>
+   <textarea class="inp" id="vaultEditInput" rows="6" style="line-height:1.55" placeholder="可以把搜索到的剧情简介、人物表或背景设定粘贴到这里，保存后只给屁屁看…"></textarea>
+  </div>
+  <div class="ov-btns" style="flex-wrap:wrap;gap:6px" id="vaultViewBtns">
+   <button class="btn-cancel" id="vaultUnlockBtn" onclick="unlockVaultText()">🔓 我已看完，查看原文</button>
+   <button class="btn-cancel" id="vaultEditBtn" onclick="toggleVaultEdit()">✏️ 存入/更新暗盒</button>
+   <button class="btn-cancel" id="vaultClearBtn" onclick="clearCurrentVault()">🗑️ 清空</button>
+   <button class="btn-save" id="vaultSaveEditBtn" style="display:none" onclick="saveVaultEdit()">🔒 加密上锁保存</button>
+   <button class="btn-save" onclick="closeVaultView()">关闭</button>
+  </div>
+ </div>
+</div>
+
+<!-- v7.9.2: 🔒 QUICK SAVE MESSAGE TO BOOK / MEDIA VAULT OVERLAY -->
+<div class="ov" id="vaultPickOv" onclick="if(event.target===this)closeVaultPick()">
+ <div class="ov-box" style="max-width:430px">
+  <h3>🔒 存入书影暗盒（仅屁屁可见）</h3>
+  <p class="hint" style="margin-bottom:8px">把这条消息里的剧情/资料藏进对应作品的暗盒，以后再聊不用重新联网搜，也不会剧透给 Yoru。</p>
+  <div class="field" style="margin-bottom:8px">
+   <label class="label">存到哪一类？</label>
+   <div class="arc-status-btns" id="vpDomainBtns">
+    <button type="button" class="arc-status-btn active" data-dom="media" onclick="vpSwitchDomain('media')">🎬 观影/观剧</button>
+    <button type="button" class="arc-status-btn" data-dom="reading" onclick="vpSwitchDomain('reading')">📖 阅读进度</button>
+   </div>
+  </div>
+  <div class="field" style="margin-bottom:8px">
+   <label class="label">选择已有作品（或下方新建）</label>
+   <select class="inp" id="vpItemSelect"></select>
+  </div>
+  <div class="field" style="margin-bottom:8px">
+   <label class="label">或者直接新建作品并存入暗盒（留空则存到上面选中的）</label>
+   <input class="inp" id="vpNewTitle" placeholder="输入新书名或新片名，例如：穿Prada的女王2">
+  </div>
+  <div class="ov-btns">
+   <button class="btn-cancel" onclick="closeVaultPick()">取消</button>
+   <button class="btn-save" onclick="confirmVaultPickSave()">🔒 悄悄锁进暗盒</button>
   </div>
  </div>
 </div>
@@ -2796,6 +2945,8 @@ function showContextPreview(){
   if(rdPrev.context)segments.push({icon:'📖',label:'阅读进度（按需）',text:rdPrev.context,cached:false});
   const stPrev=(typeof buildStoryContext==='function'&&lastUserText)?buildStoryContext(lastUserText):{context:''};
   if(stPrev.context)segments.push({icon:'🌙',label:'晚安故事书架（按需）',text:stPrev.context,cached:false});
+  const mdPrev=(typeof buildMediaContext==='function'&&lastUserText)?buildMediaContext(lastUserText):{context:''};
+  if(mdPrev.context)segments.push({icon:'🎬',label:'观影/观剧与暗盒（按需）',text:mdPrev.context,cached:false});
   const navPrev=(typeof buildNavContext==='function'&&lastUserText)?buildNavContext(lastUserText):{context:''};
   if(navPrev.context)segments.push({icon:'🧭',label:'导航路况（独立持久）',text:navPrev.context,cached:false});
   // Note: search context is temporary, only exists during send
@@ -3255,7 +3406,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.9.1'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.9.2'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -4472,6 +4623,7 @@ function doExportAll(includeKeys){
     archive:archive,
     reading:(typeof getReadingExportData==='function'?getReadingExportData():{v:1,books:[]}), // v7.7.16
     stories:(typeof getStoriesExportData==='function'?getStoriesExportData():{v:1,baseNum:0,items:[]}), // v7.9.1
+    media:(typeof getMediaExportData==='function'?getMediaExportData():{v:1,items:[]}), // v7.9.2
     // v6.7: 包含当前对话的实际生效prompt预览
     currentPromptPreview:curConv()?buildPromptPreview(curConv()):'',
     conversations:cleanConvs
@@ -4784,6 +4936,14 @@ function buildApi(msgs,conv,useCache,searchContext,maxHist){
     api.push({role:'assistant',content:'收到晚安故事书架目录，屁屁会接着最新编号往下讲，绝不重复题目🌙🍑'});
     api.push(lastStMsg);
   }
+  // v7.9.2: 独立观影/观剧进度与暗盒剧情按需注入 —— 排在所有缓存断点之后，绝不打碎缓存
+  const mdRead=(typeof buildMediaContext==='function')?buildMediaContext(lastUserText):{context:''};
+  if(mdRead.context&&api.length&&api[api.length-1].role==='user'){
+    const lastMdMsg=api.pop();
+    api.push({role:'user',content:mdRead.context});
+    api.push({role:'assistant',content:'收到观影/观剧记录与防剧透暗盒规则，屁屁会严格按Yoru的观看进度控嘴、绝不剧透🎬🔒🍑'});
+    api.push(lastMdMsg);
+  }
   // v7.8.0: 独立持久化导航状态按需注入 —— 独立于聊天滚动轮数，排在所有缓存断点之后，绝不打碎缓存
   const navRead=(typeof buildNavContext==='function')?buildNavContext(lastUserText):{context:'',report:{active:false}};
   if(navRead.context&&api.length&&api[api.length-1].role==='user'){
@@ -4963,6 +5123,7 @@ async function send(){
 
 async function callApi(c,searchContext){
   const m=c.model||gModel;if(!m){lastErr='请先选择模型';return}
+  if(searchContext&&typeof tryAutoVaultFromSearch==='function'){try{tryAutoVaultFromSearch(c,searchContext)}catch(e){}}
   abortCtrl=new AbortController();
   try{
     // v5.9: cache flag passed to buildApi for explicit breakpoint
@@ -5574,6 +5735,8 @@ function importC(inp){
       if(d.reading&&typeof importReadingData==='function'){importReadingData(d.reading);}
       // v7.9.1: 恢复晚安故事书架（旧备份无此字段时保留现状，兼容不报错）
       if(d.stories&&typeof importStoriesData==='function'){importStoriesData(d.stories);}
+      // v7.9.2: 恢复观影/观剧进度与暗盒（旧备份无此字段时保留现状）
+      if(d.media&&typeof importMediaData==='function'){importMediaData(d.media);}
       convs=d.conversations;if(convs.length)curId=convs[0].id;
       saveConvs();
       alert('✅ 全量数据已导入！共 '+d.conversations.length+' 个对话 🍑');
@@ -5707,7 +5870,7 @@ function render(){
       const bubbleContent=m.content?md(m.content,citationSources(msgs,i)):'<span class="ldots"><span>●</span><span>●</span><span>●</span></span>';
       const bmClass=m.bookmarked?'bookmarked':'';
       const cacheDiagHtml=m._cacheDiag?`<div id="${m._cacheDiag.id}" style="display:none;font-size:10px;color:var(--soft);padding:4px 6px;margin-top:2px;border-radius:6px;background:rgba(255,255,255,.03);word-break:break-all">🔧 ${esc(m._cacheDiag.info)}</div>`:'';
-      row.innerHTML=`<span class="avatar" onclick="pokePeach(this)" title="戳屁屁">🍑</span><div class="msg-wrap">${thinkHtml}<div class="bubble bot">${bubbleContent}</div>${meta.length?`<div class="msg-meta">${meta.join(' · ')}</div>`:''}${cacheDiagHtml}${arcReadDetails(m.trail?.archiveRead)}<div class="msg-acts">${m.content?`<button onclick="copyMsg(${i})" title="复制">📋</button><button class="${bmClass}" onclick="toggleBookmark(${i})" title="书签">⭐</button><button onclick="saveMsgAsStory(${i})" title="收入晚安故事书架">🌙</button>${m.trail?`<button onclick="showTrail(${i})" title="记忆轨迹">🧭</button>`:''}${prevBtn}`:''}</div></div>`;
+      row.innerHTML=`<span class="avatar" onclick="pokePeach(this)" title="戳屁屁">🍑</span><div class="msg-wrap">${thinkHtml}<div class="bubble bot">${bubbleContent}</div>${meta.length?`<div class="msg-meta">${meta.join(' · ')}</div>`:''}${cacheDiagHtml}${arcReadDetails(m.trail?.archiveRead)}<div class="msg-acts">${m.content?`<button onclick="copyMsg(${i})" title="复制">📋</button><button class="${bmClass}" onclick="toggleBookmark(${i})" title="书签">⭐</button><button onclick="saveMsgAsStory(${i})" title="收入晚安故事书架">🌙</button><button onclick="openVaultFromMsg(${i})" title="收入书影暗盒(防剧透仅屁屁可见)">🔒</button>${m.trail?`<button onclick="showTrail(${i})" title="记忆轨迹">🧭</button>`:''}${prevBtn}`:''}</div></div>`;
     }else{
       let img='';
       if(m.atts)m.atts.forEach(a=>{
@@ -9965,6 +10128,530 @@ function buildStoryContext(text){
 
 // 启动时初始化金句角标与晚安故事书架计数
 setTimeout(()=>{try{loadStories();updateStoryEntryBadge();updateQuoteBadge();}catch(e){}},350);
+
+
+// =====================================================================
+// v7.9.2: 🎬 独立观影/观剧记录 + 🔒 书影双端屁屁暗盒剧情层（防剧透）
+// =====================================================================
+const MEDIA_KEY='ps3_media';
+const MEDIA_DONE_COOLDOWN_MS=7*24*3600*1000;
+const MEDIA_STATUS_META={
+  watching:{icon:'🍿',label:'在追/在看'},
+  want:{icon:'💭',label:'想看'},
+  paused:{icon:'⏸️',label:'搁置'},
+  done:{icon:'✅',label:'看完'}
+};
+let mediaStore={v:1,items:[]};
+let mdTab='watching';
+let mdKindFilter='all'; // 'all' | 'movie' | 'tv'
+let mdEditId=null;
+let mdFormKind='movie';
+let mdFormStatus='done';
+let mdFormDateMode='today';
+
+function loadMedia(){
+  try{
+    const raw=localStorage.getItem(MEDIA_KEY);
+    if(raw){
+      const p=JSON.parse(raw);
+      if(p&&Array.isArray(p.items))mediaStore={v:1,items:p.items};
+    }
+  }catch(e){}
+  return mediaStore;
+}
+function saveMedia(){
+  try{localStorage.setItem(MEDIA_KEY,JSON.stringify(mediaStore))}catch(e){}
+  updateMediaBadge();
+}
+function getMediaExportData(){
+  loadMedia();
+  return {v:1,items:mediaStore.items||[]};
+}
+function importMediaData(d){
+  if(!d||!Array.isArray(d.items))return;
+  mediaStore={v:1,items:d.items};
+  saveMedia();
+}
+function mdItemAliases(it){
+  const arr=[it.title||'',...(Array.isArray(it.aliases)?it.aliases:[])];
+  return arr.map(x=>arcNorm(x)).filter(Boolean);
+}
+function getMediaState(now=Date.now()){
+  loadMedia();
+  const list=mediaStore.items||[];
+  const watching=[],want=[],paused=[],allDone=[],recentDone=[];
+  list.forEach(it=>{
+    const st=it.status||'want';
+    if(st==='watching')watching.push(it);
+    else if(st==='paused')paused.push(it);
+    else if(st==='done'){
+      allDone.push(it);
+      const isHist=it.dateMode==='past_done'||it.dateMode==='past_half'||it.dateMode==='unknown';
+      if(!isHist&&it.finishedAt&&now-it.finishedAt<=MEDIA_DONE_COOLDOWN_MS)recentDone.push(it);
+    }else want.push(it);
+  });
+  const byUpd=(a,b)=>(b.updatedAt||b.addedAt||0)-(a.updatedAt||a.addedAt||0);
+  watching.sort(byUpd);want.sort(byUpd);paused.sort(byUpd);allDone.sort(byUpd);recentDone.sort(byUpd);
+  return {
+    watching,want,paused,allDone,recentDone,
+    counts:{watching:watching.length,want:want.length,paused:paused.length,done:allDone.length,all:list.length}
+  };
+}
+function updateMediaBadge(){
+  const btn=$('mediaEntryBtn');if(!btn)return;
+  const st=getMediaState();
+  const n=st.counts.all;
+  btn.textContent=n?`🎬 观影/观剧（${n}部）`:'🎬 观影/观剧';
+}
+function openMediaPage(){
+  loadMedia();
+  $('mediaPage').classList.add('active');
+  renderMediaPage();
+}
+function closeMediaPage(){$('mediaPage').classList.remove('active')}
+function mdSwitchTab(tab,btn){
+  mdTab=tab||'watching';
+  document.querySelectorAll('#mdTabs .arc-tab').forEach(t=>t.classList.toggle('active',t.dataset.mdtab===mdTab));
+  renderMediaPage();
+}
+function mdSetKindFilter(kind,btn){
+  mdKindFilter=kind||'all';
+  document.querySelectorAll('#mdKindChips .v791-chip').forEach(b=>b.classList.toggle('active',b.dataset.mkind===mdKindFilter));
+  renderMediaPage();
+}
+function renderVaultBadgeHtml(domain,id,vault){
+  if(vault&&vault.text&&vault.text.trim()){
+    const len=vault.text.trim().length;
+    return `<button type="button" class="vault-badge" onclick="event.stopPropagation();openVaultView('${domain}','${id}')">🔒 屁屁已记住完整剧情（${len}字 · 防剧透已隐藏）</button>`;
+  }
+  return `<button type="button" class="vault-badge empty" onclick="event.stopPropagation();openVaultView('${domain}','${id}')">🔒 存入剧情暗盒（仅屁屁可见）</button>`;
+}
+function renderMediaPage(){
+  const body=$('mediaBody');if(!body)return;
+  const st=getMediaState();
+  document.querySelectorAll('#mdTabs .arc-tab').forEach(b=>{
+    const k=b.dataset.mdtab;
+    const base={watching:'🍿 在追/在看',want:'💭 想看',paused:'⏸️ 搁置',done:'✅ 看完',all:'🎞️ 全部'}[k]||k;
+    const n=st.counts[k]||0;
+    b.textContent=n?`${base}(${n})`:base;
+  });
+  const q=arcNorm($('mdSearch')?.value||'');
+  let list=mdTab==='all'?[...st.watching,...st.want,...st.paused,...st.allDone]:(st[mdTab==='done'?'allDone':mdTab]||[]);
+  if(mdKindFilter!=='all')list=list.filter(x=>(x.kind||'movie')===mdKindFilter);
+  if(q){
+    list=list.filter(x=>mdItemAliases(x).some(a=>a.includes(q))||arcNorm(x.creator||'').includes(q)||arcNorm(x.note||'').includes(q));
+  }
+  let h=`<button class="arc-add-btn" onclick="openMediaForm(null)">＋ 添加电影 / 剧集</button>`;
+  if(!list.length){
+    h+=`<div class="arc-empty"><span>🎬</span>${q?'没有找到匹配的影片～':'这一栏还没有观影/观剧记录～<br>点上方添加，以后说“推荐电影”自动避开看过的🍑'}</div>`;
+    body.innerHTML=h;return;
+  }
+  const now=Date.now();
+  list.forEach(it=>{
+    const sm=MEDIA_STATUS_META[it.status]||MEDIA_STATUS_META.want;
+    const kindPill=it.kind==='tv'?'<span class="media-kind-pill">📺 剧集</span>':'<span class="media-kind-pill">🎬 电影</span>';
+    const isHist=it.dateMode==='past_done'||it.dateMode==='past_half'||it.dateMode==='unknown';
+    const recentTag=(it.status==='done'&&!isHist&&it.finishedAt&&now-it.finishedAt<=MEDIA_DONE_COOLDOWN_MS)?'<span class="rd-focus-badge">✨ 近7天刚看完</span>':'';
+    const progHtml=it.progress?`<span class="rd-prog-pill">📍 ${esc(it.progress)}</span>`:'';
+    const updDate=it.dateLabel?it.dateLabel:('更新于 '+new Date(it.updatedAt||it.addedAt||now).toLocaleDateString('zh-CN'));
+    const noteHtml=it.note?`<div class="arc-card-note" style="white-space:pre-wrap">${esc(it.note)}</div>`:'';
+    const vaultBtn=renderVaultBadgeHtml('media',it.id,it.plotVault);
+    h+=`<div class="arc-card">
+      <div class="arc-card-acts"><button onclick="openMediaForm('${it.id}')">✏️</button><button onclick="deleteMediaItem('${it.id}')">🗑️</button></div>
+      <div class="arc-card-title">${kindPill}${esc(it.title)}</div>
+      <div style="font-size:11.5px;color:var(--soft);margin:4px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <span class="arc-card-badge arc-badge-${it.status==='done'?'done':(it.status==='watching'?'reading':'want')}">${sm.icon} ${sm.label}</span>
+        ${recentTag}${progHtml}
+        ${it.creator?`<span>${esc(it.creator)}</span>`:''}
+        <span>${esc(updDate)}</span>
+      </div>
+      ${noteHtml}
+      <div>${vaultBtn}</div>
+    </div>`;
+  });
+  body.innerHTML=h;
+}
+function mdSetFormKind(kind){
+  mdFormKind=kind==='tv'?'tv':'movie';
+  document.querySelectorAll('#mdFKindBtns .arc-status-btn').forEach(b=>b.classList.toggle('active',b.dataset.kind===mdFormKind));
+}
+function mdSetFormStatus(st){
+  mdFormStatus=st||'done';
+  document.querySelectorAll('#mdFStatusBtns .arc-status-btn').forEach(b=>b.classList.toggle('active',b.dataset.st===mdFormStatus));
+}
+function mdSetDateMode(mode){
+  mdFormDateMode=mode||'today';
+  document.querySelectorAll('#mdFDateChips .rd-date-chip').forEach(b=>b.classList.toggle('active',b.dataset.dm===mdFormDateMode));
+  const dv=$('mdFDateVal');
+  if(dv)dv.style.display=mdFormDateMode==='custom'?'':'none';
+}
+function openMediaForm(id){
+  loadMedia();
+  if(!id){
+    mdEditId=null;
+    $('mdFormTitle').textContent='🎬 添加观影 / 观剧记录';
+    mdSetFormKind('movie');
+    $('mdFTitle').value='';
+    $('mdFCreator').value='';
+    $('mdFAliases').value='';
+    mdSetFormStatus(mdTab==='all'?'done':mdTab);
+    $('mdFProgress').value='';
+    mdSetDateMode('today');
+    $('mdFDateVal').value=new Date().toISOString().slice(0,10);
+    $('mdFNote').value='';
+  }else{
+    const it=(mediaStore.items||[]).find(x=>x.id===id);if(!it)return;
+    mdEditId=it.id;
+    $('mdFormTitle').textContent='✏️ 编辑观影 / 观剧记录';
+    mdSetFormKind(it.kind||'movie');
+    $('mdFTitle').value=it.title||'';
+    $('mdFCreator').value=it.creator||'';
+    $('mdFAliases').value=(it.aliases||[]).join(', ');
+    mdSetFormStatus(it.status||'done');
+    $('mdFProgress').value=it.progress||'';
+    mdSetDateMode(it.dateMode||'today');
+    $('mdFDateVal').value=it.customDate||new Date().toISOString().slice(0,10);
+    $('mdFNote').value=it.note||'';
+  }
+  $('mediaFormOv').classList.add('active');
+}
+function closeMediaForm(){$('mediaFormOv').classList.remove('active')}
+function saveMediaForm(){
+  const title=($('mdFTitle').value||'').trim();
+  if(!title){alert('请填写片名或剧名～');return}
+  const creator=($('mdFCreator').value||'').trim();
+  const aliases=($('mdFAliases').value||'').split(/[,，、]/).map(x=>x.trim()).filter(Boolean);
+  const progress=($('mdFProgress').value||'').trim();
+  const note=($('mdFNote').value||'').trim();
+  const now=Date.now();
+  const customDate=mdFormDateMode==='custom'?($('mdFDateVal').value||''):'';
+  let dateLabel='';
+  let finishedAt=null;
+  if(mdFormDateMode==='past_done'){dateLabel='以前看过';finishedAt=null;}
+  else if(mdFormDateMode==='past_half'){dateLabel='之前看一半';finishedAt=null;}
+  else if(mdFormDateMode==='custom'&&customDate){
+    dateLabel=customDate;
+    const ts=Date.parse(customDate+'T12:00:00');
+    if(mdFormStatus==='done'&&!isNaN(ts))finishedAt=ts;
+  }else{
+    dateLabel=new Date(now).toLocaleDateString('zh-CN');
+    if(mdFormStatus==='done')finishedAt=now;
+  }
+  loadMedia();
+  if(mdEditId){
+    const it=(mediaStore.items||[]).find(x=>x.id===mdEditId);
+    if(it){
+      it.kind=mdFormKind;it.title=title;it.creator=creator;it.aliases=aliases;
+      it.status=mdFormStatus;it.progress=progress;it.note=note;
+      it.dateMode=mdFormDateMode;it.customDate=customDate;it.dateLabel=dateLabel;
+      it.finishedAt=finishedAt;it.updatedAt=now;
+    }
+  }else{
+    mediaStore.items.unshift({
+      id:'md_'+uid(),kind:mdFormKind,title,creator,aliases,
+      status:mdFormStatus,progress,note,
+      dateMode:mdFormDateMode,customDate,dateLabel,
+      finishedAt,addedAt:now,updatedAt:now,plotVault:null
+    });
+  }
+  saveMedia();
+  closeMediaForm();
+  renderMediaPage();
+}
+function deleteMediaItem(id){
+  if(!confirm('确定删除这条观影/观剧记录吗？'))return;
+  loadMedia();
+  mediaStore.items=(mediaStore.items||[]).filter(x=>x.id!==id);
+  saveMedia();
+  renderMediaPage();
+}
+
+// ---------- 🔒 暗盒剧情层通用工具（同时支持 reading 与 media） ----------
+function getVaultTarget(domain,id){
+  if(domain==='reading'){
+    if(typeof loadReading==='function')loadReading();
+    const list=(typeof readingData!=='undefined'&&readingData&&Array.isArray(readingData.books))?readingData.books:[];
+    return list.find(x=>x.id===id)||null;
+  }
+  loadMedia();
+  return (mediaStore.items||[]).find(x=>x.id===id)||null;
+}
+function saveVaultDomain(domain){
+  if(domain==='reading'){
+    if(typeof saveReading==='function')saveReading();
+    if(typeof renderReading==='function'&&$('readingPage')?.classList.contains('active'))renderReading();
+  }else{
+    saveMedia();
+    if($('mediaPage')?.classList.contains('active'))renderMediaPage();
+  }
+}
+function buildVaultSpoilerRule(item,domain){
+  const st=item.status||'want';
+  const prog=item.progress?`（当前进度：${item.progress}）`:'';
+  if(st==='done'){
+    return `【🔓 暗盒已解锁】Yoru 已${domain==='reading'?'读完':'看完'}《${item.title}》，可以放开畅聊全部剧情、反转、结局与细节，不必再说没看过。`;
+  }
+  if(st==='want'){
+    return `【🔒 暗盒防剧透封印】Yoru 尚未开始看《${item.title}》（状态：想${domain==='reading'?'读':'看'}）。严禁剧透任何具体剧情、转折、凶手或结局，只可结合暗盒理解聊氛围、题材和值不值得看。`;
+  }
+  return `【🔒 暗盒进度锁】Yoru 正在看《${item.title}》${prog}。你可以借暗盒听懂 Yoru 提到的人物与细节并陪她讨论/猜想，但严禁剧透她当前进度之后的任何情节与结局！`;
+}
+
+// 给 📖 阅读进度卡片也无缝挂上 🔒 暗盒徽章（增强 renderReading）
+(function enhanceReadingWithVault(){
+  if(typeof renderReading==='function'){
+    const _origRenderReading=renderReading;
+    renderReading=function(){
+      _origRenderReading();
+      try{
+        const body=$('readingBody');if(!body)return;
+        if(typeof loadReading==='function')loadReading();
+        const books=(typeof readingData!=='undefined'&&readingData&&Array.isArray(readingData.books))?readingData.books:[];
+        const cards=body.querySelectorAll('.arc-card');
+        cards.forEach(card=>{
+          if(card.querySelector('.vault-badge'))return;
+          const editBtn=card.querySelector('button[onclick^="openReadingForm("]');
+          if(!editBtn)return;
+          const m=String(editBtn.getAttribute('onclick')||'').match(/openReadingForm\('([^']+)'\)/);
+          if(!m)return;
+          const b=books.find(x=>x.id===m[1]);
+          if(!b)return;
+          const wrap=document.createElement('div');
+          wrap.innerHTML=renderVaultBadgeHtml('reading',b.id,b.plotVault);
+          card.appendChild(wrap);
+        });
+      }catch(e){}
+    };
+  }
+  // 增强 buildReadingContext：当聊到带暗盒的具体书籍时，自动附带加密暗盒+防剧透规则
+  if(typeof buildReadingContext==='function'){
+    const _origBuildReading=buildReadingContext;
+    buildReadingContext=function(text,now=Date.now()){
+      const res=_origBuildReading(text,now);
+      try{
+        const t=arcNorm(String(text||''));
+        if(!t)return res;
+        if(typeof loadReading==='function')loadReading();
+        const books=(typeof readingData!=='undefined'&&readingData&&Array.isArray(readingData.books))?readingData.books:[];
+        const vaultHits=books.filter(b=>b.plotVault&&b.plotVault.text&&rdBookAliases(b).some(a=>a.length>=2&&t.includes(a)));
+        if(vaultHits.length){
+          const vLines=['\n[🔒 书籍屁屁暗盒剧情层（仅屁屁内部参考，已本地记住无需重复联网搜）]'];
+          vaultHits.slice(0,2).forEach(b=>{
+            vLines.push(buildVaultSpoilerRule(b,'reading'));
+            vLines.push(`《${b.title}》暗盒资料：${b.plotVault.text.slice(0,1500)}`);
+          });
+          res.context=(res.context?res.context+'\n':'')+vLines.join('\n');
+          if(res.report)res.report.active=true;
+        }
+      }catch(e){}
+      return res;
+    };
+  }
+})();
+
+// 🎬 观影/观剧按需注入（含暗盒防剧透规则，绝不打碎缓存）
+function buildMediaContext(text,now=Date.now()){
+  const raw=String(text||'').trim();
+  if(!raw)return {context:''};
+  const t=arcNorm(raw);
+  if(/(?:不要|不用|别|不必|无需|暂不)[^。！？!?]{0,10}(?:查观影|查电影|查剧|观影记录)/.test(t))return {context:''};
+  const st=getMediaState(now);
+  const allItems=[...st.watching,...st.paused,...st.want,...st.allDone];
+  if(!allItems.length)return {context:''};
+  const recIntent=/推荐.{0,6}(?:电影|剧|番|影片|片子)|片荒|剧荒|看什么电影|看什么剧|看过哪些(?:电影|剧)|最近看了什么|观影记录|观剧记录|影单/.test(raw);
+  const mediaCue=/电影|剧集|电视剧|追剧|美剧|日剧|韩剧|英剧|番剧|动漫|影院|看片|看完.{0,4}(?:电影|剧|这集|那部)|看到第\s*\d+\s*集|第\s*\d+\s*[季集]/.test(raw);
+  const mentioned=allItems.filter(it=>mdItemAliases(it).some(a=>a.length>=2&&t.includes(a)));
+  if(!recIntent&&!mediaCue&&!mentioned.length)return {context:''};
+
+  const fmt=(it)=>{
+    const k=it.kind==='tv'?'📺':'🎬';
+    const p=[`${k}《${it.title}》`];
+    if(it.creator)p.push(it.creator);
+    if(it.progress)p.push(`进度:${it.progress}`);
+    if(it.dateLabel)p.push(it.dateLabel);
+    if(it.note)p.push(`感想:${it.note.slice(0,50)}`);
+    return '- '+p.join('｜');
+  };
+  const lines=['[🎬 屁桃星观影/观剧记录（与阅读独立，按需同步）]'];
+  if(st.watching.length){lines.push('【正在看/在追】');st.watching.forEach(it=>lines.push(fmt(it)));}
+  if(st.recentDone.length){lines.push('【近7天刚看完】');st.recentDone.forEach(it=>lines.push(fmt(it)));}
+  if(recIntent&&st.allDone.length){
+    lines.push('【已看完列表（推荐时必须避开，不要重复推荐）】');
+    lines.push(st.allDone.map(it=>`《${it.title}》`).join('、'));
+  }
+  if(recIntent&&st.want.length){
+    lines.push('【想看清单】');
+    lines.push(st.want.slice(0,20).map(it=>`《${it.title}》`).join('、'));
+  }
+  // 附带被具体提及作品的 🔒 暗盒剧情层
+  const vaultHits=mentioned.filter(it=>it.plotVault&&it.plotVault.text);
+  if(vaultHits.length){
+    lines.push('\n[🔒 影视屁屁暗盒剧情层（仅屁屁内部参考，已本地记住无需重复联网搜）]');
+    vaultHits.slice(0,2).forEach(it=>{
+      lines.push(buildVaultSpoilerRule(it,'media'));
+      lines.push(`《${it.title}》暗盒资料：${it.plotVault.text.slice(0,1500)}`);
+    });
+  }
+  return {context:lines.join('\n')};
+}
+
+// ---------- 🔒 暗盒查看/编辑/防误触弹窗 ----------
+let curVaultDomain=null;
+let curVaultId=null;
+function openVaultView(domain,id){
+  const item=getVaultTarget(domain,id);if(!item)return;
+  curVaultDomain=domain;curVaultId=id;
+  const v=item.plotVault;
+  const hasText=!!(v&&v.text&&v.text.trim());
+  $('vaultViewTitle').textContent=`🔒 《${item.title}》暗盒剧情层`;
+  $('vaultViewMeta').textContent=hasText
+    ? `已存档 ${v.text.trim().length} 字 · 更新于 ${new Date(v.updatedAt||Date.now()).toLocaleDateString('zh-CN')}${v.source==='auto_search'?' · 联网搜索自动收录':''}`
+    : '暗盒还是空的：可以联网搜索后自动收录，也可以点下方手动粘贴存入（保存后即隐藏）。';
+  $('vaultShieldBox').style.display=hasText?'':'none';
+  $('vaultRevealWrap').style.display='none';
+  $('vaultEditWrap').style.display=hasText?'none':'';
+  $('vaultEditInput').value='';
+  $('vaultUnlockBtn').style.display=hasText?'':'none';
+  $('vaultEditBtn').style.display=hasText?'':'none';
+  $('vaultClearBtn').style.display=hasText?'':'none';
+  $('vaultSaveEditBtn').style.display=hasText?'none':'';
+  $('vaultViewOv').classList.add('active');
+}
+function closeVaultView(){$('vaultViewOv').classList.remove('active')}
+function unlockVaultText(){
+  const item=getVaultTarget(curVaultDomain,curVaultId);if(!item||!item.plotVault)return;
+  if(!confirm(`确认已看完《${item.title}》并解除防剧透封印吗？`))return;
+  $('vaultShieldBox').style.display='none';
+  $('vaultRevealText').textContent=item.plotVault.text;
+  $('vaultRevealWrap').style.display='';
+  $('vaultUnlockBtn').style.display='none';
+}
+function toggleVaultEdit(){
+  const item=getVaultTarget(curVaultDomain,curVaultId);if(!item)return;
+  const wrap=$('vaultEditWrap');
+  const show=wrap.style.display==='none';
+  wrap.style.display=show?'':'none';
+  $('vaultSaveEditBtn').style.display=show?'':'none';
+  // 不自动回填已有暗盒正文，防止手滑点编辑就被剧透！
+  $('vaultEditInput').value='';
+  $('vaultEditInput').placeholder=item.plotVault?.text?'输入新的剧情资料（将覆盖原暗盒；为防剧透此处不回显旧内容）…':'粘贴剧情简介、人物关系或设定，保存后立即上锁隐藏…';
+}
+function saveVaultEdit(){
+  const item=getVaultTarget(curVaultDomain,curVaultId);if(!item)return;
+  const txt=($('vaultEditInput').value||'').trim();
+  if(!txt){alert('请输入要锁进暗盒的内容～');return}
+  item.plotVault={text:txt.slice(0,2200),updatedAt:Date.now(),source:'manual'};
+  saveVaultDomain(curVaultDomain);
+  closeVaultView();
+  const toast=$('copyToast');if(toast){toast.textContent=`🔒 已将《${item.title}》剧情锁进屁屁暗盒🍑`;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800);}
+}
+function clearCurrentVault(){
+  const item=getVaultTarget(curVaultDomain,curVaultId);if(!item)return;
+  if(!confirm(`确定清空《${item.title}》的暗盒剧情吗？`))return;
+  item.plotVault=null;
+  saveVaultDomain(curVaultDomain);
+  closeVaultView();
+}
+
+// ---------- 🔒 一键从消息存入暗盒 + 联网搜索自动静默收纳 ----------
+let vpMsgText='';
+let vpDomain='media';
+function openVaultFromMsg(msgIdx){
+  const c=curConv();if(!c)return;
+  const m=c.messages[msgIdx];if(!m||!m.content)return;
+  vpMsgText=m.content.trim();
+  const isBookHint=/作者|出版|小说|原著|读完|书评|页/.test(vpMsgText)&&!/电影|导演|上映|票房|电视剧|第\d+集/.test(vpMsgText);
+  vpSwitchDomain(isBookHint?'reading':'media');
+  $('vpNewTitle').value='';
+  $('vaultPickOv').classList.add('active');
+}
+function closeVaultPick(){$('vaultPickOv').classList.remove('active')}
+function vpSwitchDomain(dom){
+  vpDomain=dom==='reading'?'reading':'media';
+  document.querySelectorAll('#vpDomainBtns .arc-status-btn').forEach(b=>b.classList.toggle('active',b.dataset.dom===vpDomain));
+  const sel=$('vpItemSelect');if(!sel)return;
+  let items=[];
+  if(vpDomain==='reading'){
+    if(typeof loadReading==='function')loadReading();
+    items=(typeof readingData!=='undefined'&&readingData&&Array.isArray(readingData.books))?readingData.books:[];
+  }else{
+    loadMedia();
+    items=mediaStore.items||[];
+  }
+  const tNorm=arcNorm(vpMsgText);
+  let matchedId='';
+  items.forEach(it=>{
+    if(!matchedId&&it.title&&tNorm.includes(arcNorm(it.title)))matchedId=it.id;
+  });
+  sel.innerHTML=items.length
+    ? items.map(it=>`<option value="${esc(it.id)}"${it.id===matchedId?' selected':''}>${esc(it.title)}${it.plotVault?.text?' 🔒':''}</option>`).join('')
+    : '<option value="">（当前列表为空，请在下方输入新标题）</option>';
+}
+function confirmVaultPickSave(){
+  const newTitle=($('vpNewTitle').value||'').trim();
+  const selId=$('vpItemSelect').value;
+  let target=null;
+  if(newTitle){
+    const now=Date.now();
+    if(vpDomain==='reading'){
+      if(typeof loadReading==='function')loadReading();
+      target={id:'rd_'+uid(),title:newTitle,author:'',aliases:[],status:'want',progress:'',note:'',isFocus:false,addedAt:now,updatedAt:now,plotVault:null};
+      readingData.books.unshift(target);
+    }else{
+      loadMedia();
+      target={id:'md_'+uid(),kind:'movie',title:newTitle,creator:'',aliases:[],status:'want',progress:'',note:'',dateMode:'today',dateLabel:new Date(now).toLocaleDateString('zh-CN'),addedAt:now,updatedAt:now,plotVault:null};
+      mediaStore.items.unshift(target);
+    }
+  }else if(selId){
+    target=getVaultTarget(vpDomain,selId);
+  }
+  if(!target){alert('请先选择一个已有作品，或在下方输入新标题～');return}
+  target.plotVault={text:vpMsgText.slice(0,2200),updatedAt:Date.now(),source:'manual'};
+  saveVaultDomain(vpDomain);
+  closeVaultPick();
+  const toast=$('copyToast');if(toast){toast.textContent=`🔒 已悄悄把《${target.title}》锁进屁屁暗盒🍑`;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800);}
+}
+
+function tryAutoVaultFromSearch(conv,searchContext){
+  const sc=String(searchContext||'').trim();
+  if(!sc||sc.length<60)return;
+  const lastUser=[...(conv?.messages||[])].reverse().find(x=>x&&x.role==='user'&&x.content);
+  if(!lastUser)return;
+  const uText=String(lastUser.content||'');
+  const tNorm=arcNorm(uText);
+  if(!tNorm)return;
+  const mediaWordRe=/电影|电视剧|剧集|追剧|美剧|日剧|韩剧|英剧|番剧|看剧|网剧|导演|主演|上映|影院|看片/;
+  const prefersBook=/书|小说|原著|作者|阅读|读到/.test(uText)&&!mediaWordRe.test(uText);
+  const prefersMedia=mediaWordRe.test(uText)&&!/原著|小说|书/.test(uText);
+  const domains=prefersBook?['reading','media']:(prefersMedia?['media','reading']:['media','reading']);
+  for(const dom of domains){
+    let items=[];
+    if(dom==='reading'){
+      if(typeof loadReading==='function')loadReading();
+      items=(typeof readingData!=='undefined'&&readingData&&Array.isArray(readingData.books))?readingData.books:[];
+    }else{
+      loadMedia();
+      items=mediaStore.items||[];
+    }
+    const hit=items.find(it=>{
+      const aliases=dom==='reading'?(typeof rdBookAliases==='function'?rdBookAliases(it):[arcNorm(it.title)]):mdItemAliases(it);
+      return aliases.some(a=>a.length>=2&&tNorm.includes(a));
+    });
+    if(hit){
+      hit.plotVault={text:sc.slice(0,2000),updatedAt:Date.now(),source:'auto_search'};
+      saveVaultDomain(dom);
+      const toast=$('copyToast');
+      if(toast){
+        toast.textContent=`🔒 屁屁已悄悄把《${hit.title}》搜索资料记进暗盒（防剧透已隐藏）🍑`;
+        toast.classList.add('show');
+        setTimeout(()=>toast.classList.remove('show'),2400);
+      }
+      return;
+    }
+  }
+}
+
+setTimeout(()=>{try{loadMedia();updateMediaBadge();}catch(e){}},380);
 
 </script>
 </body>

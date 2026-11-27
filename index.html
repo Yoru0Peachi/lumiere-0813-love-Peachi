@@ -361,6 +361,25 @@ body{font-family:'Noto Serif SC',-apple-system,sans-serif;background:var(--bg);c
 .att-slim-pill.on{border-color:var(--pink);background:rgba(232,160,191,.16);color:var(--gold)}
 
 
+
+/* v7.9.3: 侧边栏顶部双Tab（💬对话 / ✨小屋），大按钮防误触 + 对话列表超大视野 */
+.sb-tabs{display:flex;gap:6px;padding:8px 12px 6px}
+.sb-tab-btn{flex:1;min-height:40px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--soft);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s}
+.sb-tab-btn.active{border-color:var(--pink);background:rgba(232,160,191,.18);color:var(--gold)}
+.sb-chat-bar{display:flex;gap:6px;padding:4px 12px 8px;align-items:center}
+.sb-chat-new{flex:1;min-height:42px;border-radius:11px;border:1px dashed var(--pink);background:rgba(232,160,191,.09);color:var(--gold);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.sb-chat-new:active{background:rgba(232,160,191,.22)}
+.sb-chat-ico{width:42px;min-height:42px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--gold);font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-chat-ico:active{border-color:var(--pink);background:rgba(232,160,191,.16)}
+.sb-hub-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 12px 12px;display:none;flex-direction:column;gap:8px}
+.sb-hub-pane.active{display:flex}
+.sb-hub-card{width:100%;min-height:50px;padding:11px 14px;border-radius:13px;border:1px solid var(--border);background:rgba(232,160,191,.06);color:var(--gold);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:space-between;text-align:left;transition:all .15s}
+.sb-hub-card:active{border-color:var(--pink);background:rgba(232,160,191,.18)}
+.sb-hub-sub{font-size:11.5px;color:var(--soft);font-weight:400}
+.sb-foot.sb-foot-slim{padding:8px 12px 10px}
+.sb-foot.sb-foot-slim .storage-bar{margin-bottom:6px;padding:6px 10px}
+.sb-foot.sb-foot-slim .sb-foot-btn{min-height:42px;margin-bottom:0}
+
 /* v7.9.2: 观影/观剧模块与🔒屁屁暗盒剧情层 */
 .vault-badge{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:4px 9px;border-radius:999px;border:1px dashed rgba(180,165,235,.45);background:rgba(155,140,220,.12);color:#d4ccff;font-size:11px;cursor:pointer;font-family:inherit}
 .vault-badge:active{background:rgba(155,140,220,.24)}
@@ -946,25 +965,30 @@ body.smode .smode-badge{display:inline}
    <span class="sb-title">🍑 对话列表</span>
    <button class="sb-close" onclick="closeSB()">✕</button>
   </div>
-  <button class="sb-new" onclick="newConv()">＋ 新对话</button>
-  <div style="display:flex;gap:6px;padding:0 12px 6px">
-   <button style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit" onclick="createFolder()">📁 新建文件夹</button>
-   <button style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--soft);font-size:11px;cursor:pointer;font-family:inherit" onclick="toggleFolderEdit()">✏️</button>
+  <div class="sb-tabs" id="sbTabs">
+   <button class="sb-tab-btn active" data-sbtab="chats" onclick="switchSBTab('chats')">💬 对话</button>
+   <button class="sb-tab-btn" data-sbtab="hub" onclick="switchSBTab('hub')">✨ 小屋</button>
   </div>
-  <div class="sb-quick-row">
-   <button class="sb-quick-btn" onclick="closeSB();openGlobalSearch()">🔍 搜全部对话</button>
-   <button class="sb-quick-btn" onclick="closeSB();openQuotesWall()">⭐ 金句墙<span class="sb-quick-badge" id="sbQuoteBadge" style="display:none">0</span></button>
+  <div class="sb-chat-bar" id="sbChatBar">
+   <button class="sb-chat-new" onclick="newConv()">＋ 新对话</button>
+   <button class="sb-chat-ico" title="搜索全部对话" onclick="closeSB();openGlobalSearch()">🔍</button>
+   <button class="sb-chat-ico" title="新建文件夹" onclick="createFolder()">📁</button>
+   <button class="sb-chat-ico" title="编辑文件夹" onclick="toggleFolderEdit()">✏️</button>
   </div>
   <div class="sb-list" id="sbList"></div>
-  <div class="sb-foot">
+  <div class="sb-hub-pane" id="sbHubPane">
+   <button class="sb-hub-card" onclick="closeSB();openGlobalSearch()"><span>🔍 搜全部对话</span><span class="sb-hub-sub">全文检索</span></button>
+   <button class="sb-hub-card" onclick="closeSB();openQuotesWall()"><span>⭐ 金句收藏夹</span><span class="sb-quick-badge" id="sbQuoteBadge" style="display:none">0</span></button>
+   <button class="sb-hub-card" id="storyEntryBtn" onclick="closeSB();openStoryShelf()">🌙 晚安故事书架</button>
+   <button class="sb-hub-card" id="readingEntryBtn" onclick="closeSB();openReading()">📖 阅读进度</button>
+   <button class="sb-hub-card" id="mediaEntryBtn" onclick="closeSB();openMediaPage()">🎬 观影/观剧</button>
+   <button class="sb-hub-card" onclick="closeSB();openArchive()"><span>🍑 屁桃星档案馆</span><span class="sb-hub-sub">支持全文搜</span></button>
+  </div>
+  <div class="sb-foot sb-foot-slim">
    <div class="storage-bar" id="storageBar">
     <div class="storage-label" id="storageLabel">存储：计算中…</div>
     <div class="storage-track"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
    </div>
-   <button class="sb-foot-btn" id="storyEntryBtn" style="margin-bottom:6px" onclick="closeSB();openStoryShelf()">🌙 晚安故事书架</button>
-   <button class="sb-foot-btn" id="readingEntryBtn" style="margin-bottom:6px" onclick="closeSB();openReading()">📖 阅读进度</button>
-   <button class="sb-foot-btn" id="mediaEntryBtn" style="margin-bottom:6px" onclick="closeSB();openMediaPage()">🎬 观影/观剧</button>
-   <button class="sb-foot-btn" style="margin-bottom:6px" onclick="closeSB();openArchive()">🍑 屁桃星档案馆</button>
    <button class="sb-foot-btn" onclick="backToSettings()">⚙️ 全局设置</button>
   </div>
  </div>
@@ -3406,7 +3430,7 @@ function pickLastSpokenConv(list){
 }
 
 // ========== v6.9: 版本号唯一来源 ==========
-const APP_VERSION='v7.9.2'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
+const APP_VERSION='v7.9.3'; // v7.6.4/v7.8.4跳过不用，屁桃星没有'4'🍑
 function syncVersionUI(){
   const s=$('verSub');if(s)s.textContent='Yoru × 屁屁 · '+APP_VERSION;
   const g=$('verSig');if(g)g.textContent='Yoru ♡ 屁屁 · 永远在一起 · '+APP_VERSION;
@@ -10652,6 +10676,28 @@ function tryAutoVaultFromSearch(conv,searchContext){
 }
 
 setTimeout(()=>{try{loadMedia();updateMediaBadge();}catch(e){}},380);
+
+
+// =====================================================================
+// v7.9.3: 侧边栏双 Tab 切换（💬 对话 / ✨ 小屋）
+// =====================================================================
+let curSBTab='chats';
+function switchSBTab(tab){
+  curSBTab=tab==='hub'?'hub':'chats';
+  document.querySelectorAll('#sbTabs .sb-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.sbtab===curSBTab));
+  const chatBar=$('sbChatBar');
+  const sbList=$('sbList');
+  const hubPane=$('sbHubPane');
+  if(chatBar)chatBar.style.display=curSBTab==='chats'?'flex':'none';
+  if(sbList)sbList.style.display=curSBTab==='chats'?'':'none';
+  if(hubPane)hubPane.classList.toggle('active',curSBTab==='hub');
+  if(curSBTab==='hub'){
+    try{if(typeof updateQuoteBadge==='function')updateQuoteBadge();}catch(e){}
+    try{if(typeof updateStoryEntryBadge==='function')updateStoryEntryBadge();}catch(e){}
+    try{if(typeof updateReadingBadge==='function')updateReadingBadge();}catch(e){}
+    try{if(typeof updateMediaBadge==='function')updateMediaBadge();}catch(e){}
+  }
+}
 
 </script>
 </body>
